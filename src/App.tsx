@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from './hooks/useAuth'
+import { useAuth } from './contexts/AuthContext'
 import { LoginPage } from './pages/LoginPage'
 import { Layout } from './components/Layout'
 import { HomePage } from './pages/HomePage'
@@ -17,12 +17,17 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return user ? <>{children}</> : <Navigate to="/login" replace />
 }
 
+function LoginRoute() {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  return user ? <Navigate to="/" replace /> : <LoginPage />
+}
+
 export default function App() {
-  const { user } = useAuth()
   return (
     <BrowserRouter basename="/f1-tipping-game">
       <Routes>
-        <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+        <Route path="/login" element={<LoginRoute />} />
         <Route path="/" element={<AuthGuard><Layout /></AuthGuard>}>
           <Route index element={<HomePage />} />
           <Route path="event/:eventId" element={<EventPage />} />

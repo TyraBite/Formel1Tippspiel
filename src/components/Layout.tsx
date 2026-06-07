@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth } from '../contexts/AuthContext'
 
 export function Layout() {
   const { user, logout } = useAuth()
@@ -25,7 +25,7 @@ export function Layout() {
         <div className="flex items-center gap-3">
           <span className="text-f1-muted text-sm">{user?.displayName}</span>
           <button
-            onClick={async () => { await logout(); navigate('/login') }}
+            onClick={() => logout().finally(() => navigate('/login'))}
             className="text-f1-muted hover:text-white text-sm transition-colors">
             Abmelden
           </button>
