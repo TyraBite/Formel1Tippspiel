@@ -6,7 +6,8 @@ export default defineConfig({
   plugins: [react()],
   base: '/f1-tipping-game/',
   test: {
-    environment: 'node',
+    environment: 'jsdom',
+    setupFiles: ['./src/test-setup.ts'],
     globals: true,
   },
 })
