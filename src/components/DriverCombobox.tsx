@@ -27,7 +27,7 @@ export function DriverCombobox({ drivers, value, onChange, disabledIds, disabled
   }, [drivers, query])
 
   return (
-    <Combobox value={selected} onChange={d => d && onChange(d.id)} disabled={disabled}>
+    <Combobox value={selected} onChange={d => d && onChange(d.id)} disabled={disabled} onClose={() => setQuery('')}>
       <div className="relative">
         <Combobox.Input
           className="w-full bg-f1-dark border border-f1-border rounded px-3 py-2 text-sm text-white placeholder-f1-muted focus:outline-none focus:border-f1-red disabled:opacity-50"
