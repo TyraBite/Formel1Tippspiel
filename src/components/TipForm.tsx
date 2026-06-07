@@ -24,8 +24,8 @@ export function TipForm({ sessionType, drivers, existingTip, locked, onSubmit }:
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (existingTip) setPredictions(existingTip.predictions)
-  }, [existingTip?.id])
+    setPredictions(existingTip?.predictions ?? {})
+  }, [existingTip?.id]) // intentional: re-sync only when tip identity changes
 
   const selectedIds = new Set(Object.values(predictions).filter(Boolean))
 

@@ -11,7 +11,8 @@ export function useTips(event: F1Event | null) {
   useEffect(() => {
     if (!event) return
     return subscribeToEventTips(event.id, setTips)
-  }, [event?.id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event?.id]) // intentional: resubscribe only when event identity changes
 
   function getTip(sessionType: TippableSessionType): Tip | undefined {
     return tips.find(t => t.userId === user?.id && t.sessionType === sessionType)
