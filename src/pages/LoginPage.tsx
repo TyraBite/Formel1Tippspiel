@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 
 export function LoginPage() {
   const { login } = useAuth()
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -13,9 +13,9 @@ export function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      await login(email, password)
+      await login(`${username.toLowerCase().trim()}@f1tipping.local`, password)
     } catch {
-      setError('Ungültige E-Mail oder Passwort.')
+      setError('Ungültiger Benutzername oder Passwort.')
     } finally {
       setLoading(false)
     }
@@ -30,11 +30,12 @@ export function LoginPage() {
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <input
-            type="email"
-            placeholder="E-Mail"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
+            type="text"
+            placeholder="Benutzername"
+            value={username}
+            onChange={e => setUsername(e.target.value)}
             className="bg-f1-dark border border-f1-border rounded-lg px-3 py-2 text-white placeholder-f1-muted focus:outline-none focus:border-f1-red"
+            autoComplete="username"
             required
           />
           <input

@@ -19,8 +19,8 @@ async function seed() {
 
   console.log('Seeding users...')
   const users = [
-    { email: 'player1@test.com', password: 'test1234', displayName: 'Spieler 1' },
-    { email: 'player2@test.com', password: 'test1234', displayName: 'Spieler 2' },
+    { email: 'spieler1@f1tipping.local', password: 'test1234', displayName: 'Spieler 1' },
+    { email: 'spieler2@f1tipping.local', password: 'test1234', displayName: 'Spieler 2' },
   ]
   for (const u of users) {
     try {
