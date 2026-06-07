@@ -1,0 +1,24 @@
+{
+  "drivers": [
+    { "id": "max_verstappen",  "code": "VER", "name": "Max Verstappen",  "team": "Red Bull Racing",  "number": 1  },
+    { "id": "liam_lawson",     "code": "LAW", "name": "Liam Lawson",     "team": "Red Bull Racing",  "number": 30 },
+    { "id": "charles_leclerc", "code": "LEC", "name": "Charles Leclerc", "team": "Ferrari",          "number": 16 },
+    { "id": "lewis_hamilton",  "code": "HAM", "name": "Lewis Hamilton",  "team": "Ferrari",          "number": 44 },
+    { "id": "george_russell",  "code": "RUS", "name": "George Russell",  "team": "Mercedes",         "number": 63 },
+    { "id": "kimi_antonelli",  "code": "ANT", "name": "Kimi Antonelli",  "team": "Mercedes",         "number": 12 },
+    { "id": "lando_norris",    "code": "NOR", "name": "Lando Norris",    "team": "McLaren",          "number": 4  },
+    { "id": "oscar_piastri",   "code": "PIA", "name": "Oscar Piastri",   "team": "McLaren",          "number": 81 },
+    { "id": "fernando_alonso", "code": "ALO", "name": "Fernando Alonso", "team": "Aston Martin",     "number": 14 },
+    { "id": "lance_stroll",    "code": "STR", "name": "Lance Stroll",    "team": "Aston Martin",     "number": 18 },
+    { "id": "alex_albon",      "code": "ALB", "name": "Alex Albon",      "team": "Williams",         "number": 23 },
+    { "id": "carlos_sainz",    "code": "SAI", "name": "Carlos Sainz",    "team": "Williams",         "number": 55 },
+    { "id": "pierre_gasly",    "code": "GAS", "name": "Pierre Gasly",    "team": "Alpine",           "number": 10 },
+    { "id": "jack_doohan",     "code": "DOO", "name": "Jack Doohan",     "team": "Alpine",           "number": 7  },
+    { "id": "nico_hulkenberg",  "code": "HUL", "name": "Nico Hülkenberg", "team": "Sauber",          "number": 27 },
+    { "id": "valtteri_bottas", "code": "BOT", "name": "Valtteri Bottas", "team": "Sauber",           "number": 77 },
+    { "id": "esteban_ocon",    "code": "OCO", "name": "Esteban Ocon",    "team": "Haas",             "number": 31 },
+    { "id": "oliver_bearman",  "code": "BEA", "name": "Oliver Bearman", "team": "Haas",             "number": 87 },
+    { "id": "yuki_tsunoda",    "code": "TSU", "name": "Yuki Tsunoda",    "team": "Racing Bulls",     "number": 22 },
+    { "id": "isack_hadjar",    "code": "HAD", "name": "Isack Hadjar",    "team": "Racing Bulls",     "number": 6  }
+  ]
+}

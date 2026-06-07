@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "emulators": "firebase emulators:start --project demo-f1-tipping",
+    "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.10",
