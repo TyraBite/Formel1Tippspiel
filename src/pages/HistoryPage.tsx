@@ -59,20 +59,31 @@ export function HistoryPage() {
                         </div>
                       )}
                     </div>
-                    {tip && score ? (
+                    {tip ? (
                       <div className="text-sm space-y-1">
-                        {score.breakdown.map(b => (
-                          <div key={b.pos} className={`flex items-center gap-2 py-0.5 rounded px-1 ${
-                            b.points === 3 ? 'bg-f1-gold/10' : b.points === 1 ? 'bg-f1-green/10' : ''
-                          }`}>
-                            <span className="text-f1-muted font-mono w-4">{b.pos}</span>
-                            <span className={b.points > 0 ? 'text-white' : 'text-f1-muted'}>
-                              {b.predictedDriverId || '–'}
-                            </span>
-                            {b.points === 3 && <span className="text-f1-gold text-xs ml-auto">+3</span>}
-                            {b.points === 1 && <span className="text-f1-green text-xs ml-auto">+1</span>}
-                          </div>
-                        ))}
+                        {score ? (
+                          score.breakdown.map(b => (
+                            <div key={b.pos} className={`flex items-center gap-2 py-0.5 rounded px-1 ${
+                              b.points === 3 ? 'bg-f1-gold/10' : b.points === 1 ? 'bg-f1-green/10' : ''
+                            }`}>
+                              <span className="text-f1-muted font-mono w-4">{b.pos}</span>
+                              <span className={b.points > 0 ? 'text-white' : 'text-f1-muted'}>
+                                {b.predictedDriverId || '–'}
+                              </span>
+                              {b.points === 3 && <span className="text-f1-gold text-xs ml-auto">+3</span>}
+                              {b.points === 1 && <span className="text-f1-green text-xs ml-auto">+1</span>}
+                            </div>
+                          ))
+                        ) : (
+                          Object.entries(tip.predictions)
+                            .sort(([a], [b]) => Number(a) - Number(b))
+                            .map(([pos, driverId]) => (
+                              <div key={pos} className="flex items-center gap-2 py-0.5 px-1">
+                                <span className="text-f1-muted font-mono w-4">{pos}</span>
+                                <span className="text-f1-muted">{driverId || '–'}</span>
+                              </div>
+                            ))
+                        )}
                       </div>
                     ) : (
                       <p className="text-f1-muted text-sm">Kein Tipp abgegeben</p>
