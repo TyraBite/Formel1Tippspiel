@@ -1,10 +1,10 @@
 import {
-  collection, doc, getDoc, getDocs, setDoc,
+  collection, doc, getDocs, setDoc,
   query, where, orderBy, Timestamp, onSnapshot,
   type Unsubscribe,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import type { F1Event, Driver, SessionResult, Tip, Score, TippableSessionType, AppUser } from '../types'
+import type { F1Event, Driver, SessionResult, Tip, Score, AppUser } from '../types'
 
 // Events
 export async function getEvents(): Promise<F1Event[]> {

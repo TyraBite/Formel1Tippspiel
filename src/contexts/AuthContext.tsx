@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type UserCredential } from 'firebase/auth'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
 import type { AppUser } from '../types'
@@ -7,7 +7,7 @@ import type { AppUser } from '../types'
 interface AuthContextValue {
   user: AppUser | null
   loading: boolean
-  login: (email: string, password: string) => Promise<any>
+  login: (email: string, password: string) => Promise<UserCredential>
   logout: () => Promise<void>
 }
 
@@ -56,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth must be used inside AuthProvider')

@@ -53,7 +53,7 @@ export function HomePage() {
         {events.map(event => {
           const isPast = event.sessions.race.startTime.toDate() <= now
           return (
-            <Link key={event.id} to={`/event/${event.id}`}
+            <Link key={event.id} to={isPast ? `/history/${event.id}` : `/event/${event.id}`}
               className="card hover:border-f1-red transition-colors flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
@@ -66,7 +66,7 @@ export function HomePage() {
                 <p className="text-f1-muted text-xs ml-8">{event.circuit}</p>
               </div>
               {isPast
-                ? <span className="text-f1-green text-xs">Abgeschlossen</span>
+                ? <span className="text-f1-green text-xs">Verlauf →</span>
                 : <span className="text-f1-muted text-xs">Offen</span>}
             </Link>
           )

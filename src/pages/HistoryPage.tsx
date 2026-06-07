@@ -20,6 +20,9 @@ export function HistoryPage() {
     const unsubEvents = subscribeToEvents(es => setEvent(es.find(e => e.id === eventId) ?? null))
     getScores(eventId).then(setScores)
     getUsers().then(setUsers)
+    // Phase 2: lockedAt is set by the sync job when a session starts.
+    // Until then, Firestore rules only return the current user's own tips.
+    // Opponent tips become visible once the session starts (Phase 2).
     const unsubTips = subscribeToEventTips(eventId, setTips)
     return () => { unsubEvents(); unsubTips() }
   }, [eventId])

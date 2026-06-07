@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "emulators": "firebase emulators:start --project demo-f1-tipping",
     "seed": "tsx scripts/seed.ts"
   },
