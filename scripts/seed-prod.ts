@@ -2,14 +2,19 @@ import { initializeApp, cert } from 'firebase-admin/app'
 import { getFirestore, Timestamp } from 'firebase-admin/firestore'
 import seasonData from '../data/season-2026.json'
 
-// Usage: GOOGLE_APPLICATION_CREDENTIALS=serviceAccountKey.json npm run seed:prod
-
-const app = initializeApp({ credential: cert(process.env.GOOGLE_APPLICATION_CREDENTIALS!) })
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!)
+const app = initializeApp({ credential: cert(serviceAccount) })
 const db = getFirestore(app)
 
 function ts(iso: string) { return Timestamp.fromDate(new Date(iso)) }
 
 async function seed() {
+  const existing = await db.collection('drivers').limit(1).get()
+  if (!existing.empty) {
+    console.log('Database already seeded, skipping.')
+    return
+  }
+
   console.log('Seeding drivers...')
   for (const driver of seasonData.drivers) {
     await db.collection('drivers').doc(driver.id).set(driver)

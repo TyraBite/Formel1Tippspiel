@@ -41,6 +41,11 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           VITE_USE_EMULATOR: false
 
+      - name: Seed production database
+        run: npm run seed:prod
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
