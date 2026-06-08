@@ -41,15 +41,6 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           VITE_USE_EMULATOR: false
 
-      - name: Deploy Firestore rules
-        run: |
-          echo "$FIREBASE_SERVICE_ACCOUNT_KEY" > /tmp/sa.json
-          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json npx firebase-tools@latest deploy --only firestore:rules --project "$VITE_FIREBASE_PROJECT_ID" --non-interactive
-          rm /tmp/sa.json
-        env:
-          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
-          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
-
       - name: Seed production database
         run: npm run seed:prod
         env:
