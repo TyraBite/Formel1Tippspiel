@@ -4,6 +4,12 @@ dist/
 .env.production
 firebase-debug.log
 firestore-debug.log
+ui-debug.log
+pubsub-debug.log
+database-debug.log
 .firebase/
 .idea/
+.vscode/
 *.tsbuildinfo
+serviceAccountKey.json
+*-service-account.json

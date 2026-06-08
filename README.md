@@ -4,7 +4,7 @@ Zweispieler-Tippspiel für die Formel-1-Saison 2026. Beide Spieler tippen jeweil
 
 **Punktewertung:** 1 Punkt für Fahrer korrekt in Top 10 · 3 Punkte für exakte Position · Max. 30 Punkte pro Session
 
-**Live:** https://tyrabite.github.io/f1-tipping-game/
+**Live:** https://tyrabite.github.io/Formel1Tippspiel/
 
 ---
 
@@ -19,8 +19,8 @@ Zweispieler-Tippspiel für die Formel-1-Saison 2026. Beide Spieler tippen jeweil
 
 1. **Klonen und installieren**
    ```bash
-   git clone https://github.com/TyraBite/f1-tipping-game.git
-   cd f1-tipping-game
+   git clone https://github.com/TyraBite/Formel1Tippspiel.git
+   cd Formel1Tippspiel
    npm install
    ```
 
@@ -45,7 +45,7 @@ Zweispieler-Tippspiel für die Formel-1-Saison 2026. Beide Spieler tippen jeweil
    ```bash
    npm run dev
    ```
-   Öffne http://localhost:5173/f1-tipping-game/
+   Öffne http://localhost:5173/Formel1Tippspiel/
 
    **Login:** Benutzername `spieler1` / Passwort `test1234`
    (oder `spieler2` / `test1234`)
@@ -54,7 +54,7 @@ Zweispieler-Tippspiel für die Formel-1-Saison 2026. Beide Spieler tippen jeweil
 
 ### Tests ausführen
 ```bash
-npm test              # Unit-Tests (Scoring-Algorithmus)
+npm test              # Unit-Tests (Scoring + processPositions)
 npm run test:e2e      # E2E-Tests (benötigt laufenden Dev-Server)
 ```
 
@@ -74,6 +74,34 @@ Da der Login mit Username statt E-Mail funktioniert, werden Nutzer direkt in der
 
 ---
 
+## Admin-Seite
+
+Die Seite `/Formel1Tippspiel/admin` ist nur per direkter URL erreichbar (kein Link in der Nav).
+
+**Saison synchronisieren** — holt Events und Fahrer vom aktuellen und nächsten Jahr von der OpenF1 API.
+
+**Ergebnisse importieren & Punkte berechnen** — holt Positionsdaten von OpenF1 für alle abgeschlossenen Sessions und berechnet die Scores beider Spieler.
+
+---
+
+## Ergebnisse manuell seeden (Scripts)
+
+Für Scripts die auf die Produktions-DB schreiben wird der Firebase Service Account Key benötigt:
+
+```bash
+# Service Account Key von Firebase Console → Projekteinstellungen → Dienstkonten herunterladen
+FIREBASE_SERVICE_ACCOUNT_KEY=$(cat serviceAccountKey.json) npm run sync:results
+```
+
+| Script | Zweck |
+|---|---|
+| `npm run seed:prod` | Produktions-DB mit Events und Fahrern befüllen |
+| `npm run seed:tips-monaco` | Monaco 2026 Race Tips für beide Spieler seeden |
+| `npm run sync:results` | Ergebnisse von OpenF1 holen + Scores berechnen |
+| `npm run schedule:check` | Prüft ob aktuell Rennwochenende ist |
+
+---
+
 ## Firebase Setup (Produktion)
 
 1. [console.firebase.google.com](https://console.firebase.google.com) → Projekt erstellen
@@ -81,16 +109,18 @@ Da der Login mit Username statt E-Mail funktioniert, werden Nutzer direkt in der
 3. Projektkonfiguration → Deine Apps → Web-App → Config-Werte kopieren
 4. Als GitHub Secrets eintragen (siehe unten)
 
-### Firestore Rules deployen
-```bash
-firebase deploy --only firestore:rules
-```
-
 ---
 
 ## GitHub Actions / Deployment
 
 Jeder Push auf `main` löst automatisch ein Deployment auf GitHub Pages aus.
+
+| Workflow | Trigger | Zweck |
+|---|---|---|
+| `deploy.yml` | Push auf `main` | Build + Firestore Rules + Seed + GitHub Pages |
+| `seed-tips.yml` | Manuell (dispatch) | Seed-Scripts manuell auslösen |
+| `result-sync.yml` | Stündlich Fr/Sa/So | Ergebnisse von OpenF1 holen + Scores berechnen |
+| `schedule-check.yml` | Täglich 06:00 UTC | Rennwochenende erkennen, result-sync auslösen |
 
 **Benötigte GitHub Secrets** (Settings → Secrets → Actions):
 - `VITE_FIREBASE_API_KEY`
@@ -99,12 +129,4 @@ Jeder Push auf `main` löst automatisch ein Deployment auf GitHub Pages aus.
 - `VITE_FIREBASE_STORAGE_BUCKET`
 - `VITE_FIREBASE_MESSAGING_SENDER_ID`
 - `VITE_FIREBASE_APP_ID`
-
----
-
-## Phase 2 (geplant)
-
-- `scripts/sync.ts` — OpenF1-API → Firestore Ergebnisse + Punkteberechnung
-- `scripts/schedule-update.ts` — Jolpica-Kalender → Self-updating Cron in `event-sync.yml`
-- `.github/workflows/event-sync.yml` — Self-scheduling Sync-Job
-- Live-Ansicht während des Rennens
+- `FIREBASE_SERVICE_ACCOUNT_KEY` — JSON des Service Accounts (Firestore Rules Deploy + Seed + Sync)
