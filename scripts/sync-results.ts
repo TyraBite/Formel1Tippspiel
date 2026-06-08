@@ -72,7 +72,8 @@ async function syncResults(year: number) {
     if (!tippableType) continue
     const meeting = meetingByKey.get(s.meeting_key)
     if (!meeting) continue
-    for (const slug of [toSlug(meeting.location), toSlug(meeting.country_name)]) {
+    const meetingFirstWord = toSlug(meeting.meeting_name.split(' ')[0])
+    for (const slug of new Set([toSlug(meeting.location), toSlug(meeting.country_name), meetingFirstWord])) {
       sessionKeyIndex.set(`${slug}_${year}_${tippableType}`, s.session_key)
     }
   }
@@ -84,6 +85,8 @@ async function syncResults(year: number) {
   for (const event of yearEvents) {
     const eventData = event as any
     for (const sessionType of tippableTypes) {
+      if ((sessionType === 'sprint_race' || sessionType === 'sprint_qualifying') && !eventData.isSprintWeekend) continue
+
       const eventSessionKey = TIPPABLE_TO_EVENT_SESSION[sessionType]
       const sessionInfo = eventData.sessions?.[eventSessionKey]
       if (!sessionInfo) continue
