@@ -53,6 +53,8 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
   const driverByNumber = new Map<number, Driver>()
   for (const d of drivers) driverByNumber.set(d.number, d)
 
+  console.debug('[syncResults] events:', yearEvents.length, 'drivers:', driverByNumber.size, 'of1Sessions:', of1Sessions.length, 'of1Meetings:', of1Meetings.length)
+
   const meetingLocation = new Map<number, string>()
   for (const m of of1Meetings) meetingLocation.set(m.meeting_key, toSlug(m.location))
 
@@ -64,6 +66,8 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
     if (!locationSlug) continue
     sessionKeyIndex.set(`${locationSlug}_${year}_${tippableType}`, s.session_key)
   }
+
+  console.debug('[syncResults] sessionKeyIndex:', Object.fromEntries(sessionKeyIndex))
 
   const tippableTypes = Object.keys(TIPPABLE_TO_EVENT_SESSION) as TippableSessionType[]
 
@@ -80,13 +84,13 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
       if (existing?.status === 'official') continue
 
       const of1Key = sessionKeyIndex.get(`${event.id}_${sessionType}`)
-      if (!of1Key) { result.skipped++; continue }
+      if (!of1Key) { console.debug(`[syncResults] skip (no of1Key): ${event.id}_${sessionType}`); result.skipped++; continue }
 
       const positions = await openf1.positions(of1Key)
-      if (positions.length === 0) { result.skipped++; continue }
+      if (positions.length === 0) { console.debug(`[syncResults] skip (no positions): ${event.id}_${sessionType}`); result.skipped++; continue }
 
       const results = processPositions(positions, driverByNumber)
-      if (results.length === 0) { result.skipped++; continue }
+      if (results.length === 0) { console.debug(`[syncResults] skip (no results): ${event.id}_${sessionType}`); result.skipped++; continue }
 
       const msSinceEnd = now.getTime() - endTime.getTime()
       const isOfficial = msSinceEnd >= 3 * 3_600_000
