@@ -48,12 +48,13 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
   ])
 
   const yearEvents = events.filter(e => e.id.endsWith(`_${year}`))
+  console.log('[syncResults] fetched — yearEvents:', yearEvents.length, 'of1Sessions:', of1Sessions.length, 'of1Meetings:', of1Meetings.length, 'drivers:', drivers.length)
   if (yearEvents.length === 0 || of1Sessions.length === 0) return result
 
   const driverByNumber = new Map<number, Driver>()
   for (const d of drivers) driverByNumber.set(d.number, d)
 
-  console.log('[syncResults] events:', yearEvents.length, 'drivers:', driverByNumber.size, 'of1Sessions:', of1Sessions.length, 'of1Meetings:', of1Meetings.length)
+  console.log('[syncResults] driverByNumber size:', driverByNumber.size)
 
   const meetingLocation = new Map<number, string>()
   for (const m of of1Meetings) meetingLocation.set(m.meeting_key, toSlug(m.location))
