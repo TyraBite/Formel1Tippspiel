@@ -48,31 +48,27 @@ export function HomePage() {
         </div>
       )}
 
-      <h2 className="text-lg font-semibold mb-4">Alle Events 2026</h2>
+      <h2 className="text-lg font-semibold mb-4">Kommende Events</h2>
       <div className="flex flex-col gap-3">
-        {[...events.filter(e => e.sessions.race.startTime.toDate() > now),
-          ...events.filter(e => e.sessions.race.startTime.toDate() <= now)
-        ].map(event => {
-          const isPast = event.sessions.race.startTime.toDate() <= now
-          return (
-            <Link key={event.id} to={isPast ? `/history/${event.id}` : `/event/${event.id}`}
-              className="card hover:border-f1-red transition-colors flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-f1-muted font-mono text-sm w-6">R{event.round}</span>
-                  <span className="font-medium">{event.name}</span>
-                  {event.isSprintWeekend && (
-                    <span className="badge bg-f1-red text-white text-xs">S</span>
-                  )}
-                </div>
-                <p className="text-f1-muted text-xs ml-8">{event.circuit}</p>
+        {upcomingEvents.map(event => (
+          <Link key={event.id} to={`/event/${event.id}`}
+            className="card hover:border-f1-red transition-colors flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-f1-muted font-mono text-sm w-6">R{event.round}</span>
+                <span className="font-medium">{event.name}</span>
+                {event.isSprintWeekend && (
+                  <span className="badge bg-f1-red text-white text-xs">S</span>
+                )}
               </div>
-              {isPast
-                ? <span className="text-f1-green text-xs">Verlauf →</span>
-                : <span className="text-f1-muted text-xs">Offen</span>}
-            </Link>
-          )
-        })}
+              <p className="text-f1-muted text-xs ml-8">{event.circuit}</p>
+            </div>
+            <span className="text-f1-muted text-xs">Offen</span>
+          </Link>
+        ))}
+        {upcomingEvents.length === 0 && (
+          <p className="text-f1-muted text-sm">Keine weiteren Events in dieser Saison.</p>
+        )}
       </div>
     </div>
   )

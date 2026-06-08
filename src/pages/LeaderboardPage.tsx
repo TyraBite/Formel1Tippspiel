@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
-import { subscribeToAllScores, getUsers } from '../lib/firestore'
-import type { Score, AppUser } from '../types'
+import { Link } from 'react-router-dom'
+import { subscribeToAllScores, getUsers, subscribeToEvents } from '../lib/firestore'
+import { useAuth } from '../contexts/AuthContext'
+import type { Score, AppUser, F1Event } from '../types'
 
 interface UserStats {
   user: AppUser
@@ -11,12 +13,16 @@ interface UserStats {
 }
 
 export function LeaderboardPage() {
+  const { user } = useAuth()
   const [scores, setScores] = useState<Score[]>([])
   const [users, setUsers] = useState<AppUser[]>([])
+  const [events, setEvents] = useState<F1Event[]>([])
 
   useEffect(() => {
     getUsers().then(setUsers)
-    return subscribeToAllScores(setScores)
+    const unsubScores = subscribeToAllScores(setScores)
+    const unsubEvents = subscribeToEvents(setEvents)
+    return () => { unsubScores(); unsubEvents() }
   }, [])
 
   const sessionKeys = [...new Set(scores.map(s => `${s.eventId}_${s.sessionType}`))]
@@ -45,6 +51,19 @@ export function LeaderboardPage() {
 
   const sorted = Object.values(stats).sort((a, b) => b.totalPoints - a.totalPoints)
 
+  const now = new Date()
+  const pastEvents = events
+    .filter(e => e.sessions.race.startTime.toDate() <= now)
+    .sort((a, b) => b.round - a.round)
+
+  const eventIds = [...new Set(scores.map(s => s.eventId))]
+
+  function eventPoints(eventId: string): number {
+    return scores
+      .filter(s => s.eventId === eventId && s.userId === user?.id)
+      .reduce((sum, s) => sum + s.points, 0)
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Rangliste</h1>
@@ -68,7 +87,7 @@ export function LeaderboardPage() {
       </div>
 
       {users.length === 2 && sorted.length === 2 && (
-        <div className="card">
+        <div className="card mb-8">
           <h2 className="text-sm font-semibold text-f1-muted uppercase tracking-wider mb-4">Head to Head</h2>
           <div className="grid grid-cols-3 text-center gap-4 mb-4">
             <div>
@@ -94,6 +113,32 @@ export function LeaderboardPage() {
               <p className="text-xl font-bold text-f1-green">{sorted[1].sessionWins}</p>
               <p className="text-f1-muted text-xs">Siege</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {pastEvents.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-f1-muted uppercase tracking-wider mb-3">Abgeschlossene Events</h2>
+          <div className="flex flex-col gap-2">
+            {pastEvents.map(event => {
+              const pts = eventIds.includes(event.id) ? eventPoints(event.id) : null
+              return (
+                <Link key={event.id} to={`/history/${event.id}`}
+                  className="card hover:border-f1-red transition-colors flex items-center justify-between py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-f1-muted font-mono text-sm w-6">R{event.round}</span>
+                    <span className="font-medium text-sm">{event.name}</span>
+                    {event.isSprintWeekend && (
+                      <span className="badge bg-f1-red text-white text-xs">S</span>
+                    )}
+                  </div>
+                  {pts !== null
+                    ? <span className="font-bold text-f1-red text-sm">{pts} Pkt</span>
+                    : <span className="text-f1-muted text-xs">–</span>}
+                </Link>
+              )
+            })}
           </div>
         </div>
       )}
