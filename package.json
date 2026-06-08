@@ -13,7 +13,9 @@
     "emulators": "firebase emulators:start --project demo-f1-tipping",
     "seed": "tsx scripts/seed.ts",
     "seed:prod": "tsx scripts/seed-prod.ts",
-    "seed:tips-monaco": "tsx scripts/seed-tips-monaco.ts"
+    "seed:tips-monaco": "tsx scripts/seed-tips-monaco.ts",
+    "sync:results": "tsx scripts/sync-results.ts",
+    "schedule:check": "tsx scripts/schedule-check.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
