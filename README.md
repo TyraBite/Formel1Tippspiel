@@ -1,80 +1,98 @@
 # F1 Tipping Game 2026
 
-Two-player Formula 1 tipping game for the 2026 season. Predict the Top 10 for every Qualifying, Race, Sprint Qualifying and Sprint Race.
+Zweispieler-Tippspiel für die Formel-1-Saison 2026. Beide Spieler tippen jeweils die Top 10 Fahrer für jedes Qualifying, Rennen, Sprint Qualifying und Sprint Race – vor dem Start der Session.
 
-**Scoring:** 1 point for correct driver in Top 10 · 3 points for exact position · Max 30 points per session
+**Punktewertung:** 1 Punkt für Fahrer korrekt in Top 10 · 3 Punkte für exakte Position · Max. 30 Punkte pro Session
 
 **Live:** https://tyrabite.github.io/f1-tipping-game/
 
 ---
 
-## Local Development
+## Lokale Entwicklung
 
-### Prerequisites
+### Voraussetzungen
 - Node.js 20+
 - Firebase CLI: `npm install -g firebase-tools`
-- Java (for Firebase Emulator): `java -version`
+- Java (für Firebase Emulator): `java -version` — JDK 11+ oder JDK 25 funktioniert
 
 ### Setup
 
-1. **Clone and install**
+1. **Klonen und installieren**
    ```bash
    git clone https://github.com/TyraBite/f1-tipping-game.git
    cd f1-tipping-game
    npm install
    ```
 
-2. **Copy env file**
+2. **Env-Datei anlegen**
    ```bash
    cp .env.local.example .env.local
-   # Fill in Firebase values (or leave defaults for emulator-only dev)
+   # Für reine Emulator-Entwicklung reicht:
+   # VITE_USE_EMULATOR=true
+   # Alle anderen VITE_FIREBASE_* Werte werden im Emulator-Modus ignoriert
    ```
 
-3. **Start emulator + seed data**
+3. **Emulator starten und Testdaten laden**
    ```bash
    # Terminal 1
    npm run emulators
 
-   # Terminal 2 (once emulator is ready)
+   # Terminal 2 (sobald Emulator bereit ist)
    npm run seed
    ```
 
-4. **Start dev server**
+4. **Dev-Server starten**
    ```bash
    npm run dev
    ```
-   Open http://localhost:5173/f1-tipping-game/
-   Login: `player1@test.com` / `test1234`
+   Öffne http://localhost:5173/f1-tipping-game/
 
-### Running Tests
+   **Login:** Benutzername `spieler1` / Passwort `test1234`
+   (oder `spieler2` / `test1234`)
+
+> **Wichtig:** Der Emulator speichert alle Daten nur im RAM. Nach jedem Neustart des Emulators muss `npm run seed` erneut ausgeführt werden.
+
+### Tests ausführen
 ```bash
-npm test              # unit tests
-npm run test:e2e      # E2E (requires running dev server)
+npm test              # Unit-Tests (Scoring-Algorithmus)
+npm run test:e2e      # E2E-Tests (benötigt laufenden Dev-Server)
 ```
 
 ---
 
-## Firebase Setup (Production)
+## Neuen Nutzer anlegen (Produktion)
 
-1. Go to [console.firebase.google.com](https://console.firebase.google.com)
-2. Create project → enable **Firestore** (production mode) and **Authentication** (Email/Password)
-3. Copy config values from Project Settings → Your apps → Web app
-4. Paste into `.env.local` and GitHub Secrets (see below)
+Da der Login mit Username statt E-Mail funktioniert, werden Nutzer direkt in der Firebase Console angelegt:
 
-### Firestore Rules
-Deploy rules:
+1. Firebase Console → Authentication → Users → "Add user"
+2. E-Mail: `<benutzername>@f1tipping.local` (z.B. `max@f1tipping.local`)
+3. Passwort frei wählen
+4. Firestore → Collection `users` → Dokument mit der UID anlegen:
+   ```json
+   { "id": "<uid>", "email": "max@f1tipping.local", "displayName": "Max" }
+   ```
+
+---
+
+## Firebase Setup (Produktion)
+
+1. [console.firebase.google.com](https://console.firebase.google.com) → Projekt erstellen
+2. **Firestore** aktivieren (Produktionsmodus) und **Authentication** (E-Mail/Passwort)
+3. Projektkonfiguration → Deine Apps → Web-App → Config-Werte kopieren
+4. Als GitHub Secrets eintragen (siehe unten)
+
+### Firestore Rules deployen
 ```bash
 firebase deploy --only firestore:rules
 ```
 
 ---
 
-## GitHub Actions Setup
+## GitHub Actions / Deployment
 
-### Deploy Workflow
-Automatically deploys to GitHub Pages on every push to `main`.
+Jeder Push auf `main` löst automatisch ein Deployment auf GitHub Pages aus.
 
-**Required GitHub Secrets** (Settings → Secrets → Actions):
+**Benötigte GitHub Secrets** (Settings → Secrets → Actions):
 - `VITE_FIREBASE_API_KEY`
 - `VITE_FIREBASE_AUTH_DOMAIN`
 - `VITE_FIREBASE_PROJECT_ID`
@@ -82,20 +100,11 @@ Automatically deploys to GitHub Pages on every push to `main`.
 - `VITE_FIREBASE_MESSAGING_SENDER_ID`
 - `VITE_FIREBASE_APP_ID`
 
-### Event Sync Workflow (Phase 2)
-The sync job self-schedules around race events and requires one additional secret:
-
-**`PAT_WORKFLOW`** — GitHub Personal Access Token with `workflow` scope.
-
-**How to create:**
-1. GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens
-2. Name: `f1-tipping-sync`
-3. Repository access: Only `f1-tipping-game`
-4. Permissions: **Contents** (Read & Write) + **Workflows** (Read & Write)
-5. Copy token → add as `PAT_WORKFLOW` secret in repo settings
-
 ---
 
-## Verifying 2026 Driver List
+## Phase 2 (geplant)
 
-The file `data/season-2026.json` contains the known 2026 driver lineup. Verify and update before the season starts.
+- `scripts/sync.ts` — OpenF1-API → Firestore Ergebnisse + Punkteberechnung
+- `scripts/schedule-update.ts` — Jolpica-Kalender → Self-updating Cron in `event-sync.yml`
+- `.github/workflows/event-sync.yml` — Self-scheduling Sync-Job
+- Live-Ansicht während des Rennens
