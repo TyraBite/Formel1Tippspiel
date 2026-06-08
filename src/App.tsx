@@ -25,7 +25,7 @@ function LoginRoute() {
 
 export default function App() {
   return (
-    <BrowserRouter basename="/f1-tipping-game">
+    <BrowserRouter basename="/Formel1Tippspiel">
       <Routes>
         <Route path="/login" element={<LoginRoute />} />
         <Route path="/" element={<AuthGuard><Layout /></AuthGuard>}>
