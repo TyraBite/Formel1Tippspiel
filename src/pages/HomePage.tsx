@@ -50,7 +50,9 @@ export function HomePage() {
 
       <h2 className="text-lg font-semibold mb-4">Alle Events 2026</h2>
       <div className="flex flex-col gap-3">
-        {events.map(event => {
+        {[...events.filter(e => e.sessions.race.startTime.toDate() > now),
+          ...events.filter(e => e.sessions.race.startTime.toDate() <= now)
+        ].map(event => {
           const isPast = event.sessions.race.startTime.toDate() <= now
           return (
             <Link key={event.id} to={isPast ? `/history/${event.id}` : `/event/${event.id}`}

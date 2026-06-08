@@ -7,6 +7,15 @@
     <title>f1-tipping-game</title>
   </head>
   <body>
+    <script>
+      (function() {
+        var route = sessionStorage.getItem('spa-redirect');
+        if (route) {
+          sessionStorage.removeItem('spa-redirect');
+          window.history.replaceState(null, null, '/Formel1Tippspiel' + route);
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
