@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { DriverCombobox } from './DriverCombobox'
 import type { Driver, Tip, TippableSessionType } from '../types'
 
@@ -22,6 +22,7 @@ export function TipForm({ sessionType, drivers, existingTip, locked, onSubmit }:
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const inputRefs = useRef<Array<HTMLInputElement | null>>(Array(10).fill(null))
 
   useEffect(() => {
     setPredictions(existingTip?.predictions ?? {})
@@ -35,6 +36,9 @@ export function TipForm({ sessionType, drivers, existingTip, locked, onSubmit }:
   function setPosition(pos: number, driverId: string) {
     setPredictions(prev => ({ ...prev, [String(pos)]: driverId }))
     setSaved(false)
+    if (pos < 10) {
+      setTimeout(() => inputRefs.current[pos]?.focus(), 50)
+    }
   }
 
   async function handleSubmit() {
@@ -68,6 +72,7 @@ export function TipForm({ sessionType, drivers, existingTip, locked, onSubmit }:
             <span className="text-f1-muted text-sm w-5 text-right font-mono">{pos}</span>
             <div className="flex-1">
               <DriverCombobox
+                ref={el => { inputRefs.current[pos - 1] = el }}
                 drivers={drivers}
                 value={predictions[String(pos)] ?? ''}
                 onChange={id => setPosition(pos, id)}
