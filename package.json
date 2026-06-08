@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "emulators": "firebase emulators:start --project demo-f1-tipping",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "seed:prod": "tsx scripts/seed-prod.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
