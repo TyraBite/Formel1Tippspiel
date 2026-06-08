@@ -119,8 +119,8 @@ async function syncResults(year: number) {
         sessionType,
         results,
         status: isOfficial ? 'official' : 'provisional',
-        fetchedAt: Timestamp.now(),
-        ...(isOfficial ? { officialAt: Timestamp.now() } : {}),
+        fetchedAt: Timestamp.now() as any,
+        ...(isOfficial ? { officialAt: Timestamp.now() as any } : {}),
       }
 
       await db.collection('session_results').doc(sessionResult.id).set(sessionResult)
@@ -143,7 +143,7 @@ async function syncResults(year: number) {
           points,
           breakdown,
           isProvisional: !isOfficial,
-          calculatedAt: Timestamp.now(),
+          calculatedAt: Timestamp.now() as any,
         }
         await db.collection('scores').doc(score.id).set(score)
         console.log(`  Score: ${score.id} = ${points} pts`)
