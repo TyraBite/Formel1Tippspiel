@@ -17,7 +17,7 @@ function session(start: string, durationH: number, status: 'official' | 'upcomin
 async function seed() {
   console.log('Seeding drivers...')
   for (const driver of seasonData.drivers) {
-    await db.collection('drivers').doc(driver.id).set(driver)
+    await db.collection('drivers_2026').doc(driver.id).set(driver)
   }
 
   // Remove stale data from cancelled Bahrain GP

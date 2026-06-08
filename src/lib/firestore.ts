@@ -21,8 +21,8 @@ export function subscribeToEvents(cb: (events: F1Event[]) => void): Unsubscribe 
 }
 
 // Drivers
-export async function getDrivers(): Promise<Driver[]> {
-  const snap = await getDocs(query(collection(db, 'drivers'), orderBy('name')))
+export async function getDrivers(year: number): Promise<Driver[]> {
+  const snap = await getDocs(query(collection(db, `drivers_${year}`), orderBy('name')))
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Driver))
 }
 

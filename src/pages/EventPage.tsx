@@ -32,7 +32,8 @@ export function EventPage() {
     const unsub = subscribeToEvents(events => {
       setEvent(events.find(e => e.id === eventId) ?? null)
     })
-    getDrivers().then(setDrivers)
+    const year = parseInt(eventId?.match(/(\d{4})/)?.[1] ?? String(new Date().getFullYear()))
+    getDrivers(year).then(setDrivers)
     return unsub
   }, [eventId])
 
