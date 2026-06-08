@@ -13,3 +13,5 @@ database-debug.log
 *.tsbuildinfo
 serviceAccountKey.json
 *-service-account.json
+CLAUDE.md
+docs/superpowers/
