@@ -12,12 +12,12 @@ service cloud.firestore {
     match /tips/{tipId} {
       allow read: if request.auth != null && (
         resource.data.userId == request.auth.uid ||
-        resource.data.lockedAt != null
+        resource.data.get('lockedAt', null) != null
       );
       allow create: if request.auth.uid == request.resource.data.userId
-        && request.resource.data.lockedAt == null;
+        && !('lockedAt' in request.resource.data);
       allow update: if request.auth.uid == resource.data.userId
-        && resource.data.lockedAt == null;
+        && !('lockedAt' in resource.data);
     }
   }
 }
