@@ -1,0 +1,126 @@
+import { Timestamp } from 'firebase/firestore'
+import { openf1 } from './openf1'
+import { processPositions } from './resultProcessing'
+import { getEvents, getDrivers, getSessionResult, saveSessionResult, saveScore, getTipsForSession } from './firestore'
+import { calculateScore } from './scoring'
+import type { F1Event, Driver, SessionResult, TippableSessionType } from '../types'
+
+export interface SyncResultsResult {
+  year: number
+  resultsAdded: number
+  resultsUpdated: number
+  scoresCalculated: number
+  skipped: number
+}
+
+const RESULTS_SESSION_MAP: Partial<Record<string, TippableSessionType>> = {
+  'Race': 'race',
+  'Qualifying': 'qualifying',
+  'Sprint': 'sprint_race',
+  'Sprint Qualifying': 'sprint_qualifying',
+}
+
+const TIPPABLE_TO_EVENT_SESSION: Record<TippableSessionType, keyof F1Event['sessions']> = {
+  qualifying: 'qualifying',
+  race: 'race',
+  sprint_race: 'sprint_race',
+  sprint_qualifying: 'fp3_or_sprint_q',
+}
+
+function toSlug(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '')
+}
+
+export async function syncResults(year: number): Promise<SyncResultsResult> {
+  const result: SyncResultsResult = { year, resultsAdded: 0, resultsUpdated: 0, scoresCalculated: 0, skipped: 0 }
+  const now = new Date()
+
+  const [events, drivers, of1Sessions, of1Meetings] = await Promise.all([
+    getEvents(),
+    getDrivers(year),
+    openf1.sessions(year),
+    openf1.meetings(year),
+  ])
+
+  const yearEvents = events.filter(e => e.id.endsWith(`_${year}`))
+  if (yearEvents.length === 0 || of1Sessions.length === 0) return result
+
+  const driverByNumber = new Map<number, Driver>()
+  for (const d of drivers) driverByNumber.set(d.number, d)
+
+  const meetingLocation = new Map<number, string>()
+  for (const m of of1Meetings) meetingLocation.set(m.meeting_key, toSlug(m.location))
+
+  const sessionKeyIndex = new Map<string, number>()
+  for (const s of of1Sessions) {
+    const tippableType = RESULTS_SESSION_MAP[s.session_type]
+    if (!tippableType) continue
+    const locationSlug = meetingLocation.get(s.meeting_key)
+    if (!locationSlug) continue
+    sessionKeyIndex.set(`${locationSlug}_${year}_${tippableType}`, s.session_key)
+  }
+
+  const tippableTypes = Object.keys(TIPPABLE_TO_EVENT_SESSION) as TippableSessionType[]
+
+  for (const event of yearEvents) {
+    for (const sessionType of tippableTypes) {
+      const eventSessionKey = TIPPABLE_TO_EVENT_SESSION[sessionType]
+      const sessionInfo = event.sessions[eventSessionKey]
+      if (!sessionInfo) continue
+
+      const endTime = sessionInfo.endTime.toDate()
+      if (endTime > now) continue
+
+      const existing = await getSessionResult(event.id, sessionType)
+      if (existing?.status === 'official') continue
+
+      const of1Key = sessionKeyIndex.get(`${event.id}_${sessionType}`)
+      if (!of1Key) { result.skipped++; continue }
+
+      const positions = await openf1.positions(of1Key)
+      if (positions.length === 0) { result.skipped++; continue }
+
+      const results = processPositions(positions, driverByNumber)
+      if (results.length === 0) { result.skipped++; continue }
+
+      const msSinceEnd = now.getTime() - endTime.getTime()
+      const isOfficial = msSinceEnd >= 3 * 3_600_000
+
+      const sessionResult: SessionResult = {
+        id: `${event.id}_${sessionType}`,
+        eventId: event.id,
+        sessionType,
+        results,
+        status: isOfficial ? 'official' : 'provisional',
+        fetchedAt: Timestamp.now(),
+        ...(isOfficial ? { officialAt: Timestamp.now() } : {}),
+      }
+
+      await saveSessionResult(sessionResult)
+      if (existing) result.resultsUpdated++; else result.resultsAdded++
+
+      const tips = await getTipsForSession(event.id, sessionType)
+      for (const tip of tips) {
+        const { points, breakdown } = calculateScore(tip, sessionResult)
+        await saveScore({
+          id: `${tip.userId}_${event.id}_${sessionType}`,
+          userId: tip.userId,
+          eventId: event.id,
+          sessionType,
+          points,
+          breakdown,
+          isProvisional: !isOfficial,
+          calculatedAt: Timestamp.now(),
+        })
+        result.scoresCalculated++
+      }
+    }
+  }
+
+  return result
+}
