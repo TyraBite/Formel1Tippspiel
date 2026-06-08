@@ -2,7 +2,13 @@ import { initializeApp } from 'firebase/app'
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
 import { getAuth, connectAuthEmulator } from 'firebase/auth'
 
-const app = initializeApp({
+const isEmulator = import.meta.env.VITE_USE_EMULATOR === 'true'
+
+const app = initializeApp(isEmulator ? {
+  projectId: 'demo-f1-tipping',
+  apiKey: 'demo-key',
+  authDomain: 'demo-f1-tipping.firebaseapp.com',
+} : {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
@@ -14,7 +20,7 @@ const app = initializeApp({
 export const db = getFirestore(app)
 export const auth = getAuth(app)
 
-if (import.meta.env.VITE_USE_EMULATOR === 'true') {
+if (isEmulator) {
   connectFirestoreEmulator(db, 'localhost', 8080)
   connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true })
 }
