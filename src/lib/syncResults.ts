@@ -72,6 +72,9 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
     }
   }
 
+  const unmapped = [...new Set(of1Sessions.map(s => s.session_type).filter(t => !(t in RESULTS_SESSION_MAP)))]
+  if (unmapped.length) console.log('[sync] ungemappte Session-Typen:', unmapped)
+
   const tippableTypes = Object.keys(TIPPABLE_TO_EVENT_SESSION) as TippableSessionType[]
 
   for (const event of yearEvents) {
