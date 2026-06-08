@@ -1,9 +1,10 @@
 import { initializeApp, cert } from 'firebase-admin/app'
 import { getFirestore, Timestamp } from 'firebase-admin/firestore'
 import { openf1 } from '../src/lib/openf1'
+import { getJolpicaSprintRaces } from '../src/lib/jolpica'
 import { calculateScore } from '../src/lib/scoring'
 import { processPositions } from '../src/lib/resultProcessing'
-import type { F1Event, Driver, SessionResult, Score, Tip, TippableSessionType } from '../src/types'
+import type { F1Event, Driver, DriverResult, SessionResult, Score, Tip, TippableSessionType } from '../src/types'
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!)
 initializeApp({ credential: cert(serviceAccount) })
@@ -36,9 +37,10 @@ async function syncResults(year: number) {
   const now = new Date()
   console.log(`\nSyncing results for ${year}...`)
 
-  const [of1Sessions, of1Meetings] = await Promise.all([
+  const [of1Sessions, of1Meetings, jolpicaSprints] = await Promise.all([
     openf1.sessions(year),
     openf1.meetings(year),
+    getJolpicaSprintRaces(year),
   ])
 
   if (of1Sessions.length === 0) {
@@ -58,10 +60,15 @@ async function syncResults(year: number) {
 
   const driversSnap = await db.collection(`drivers_${year}`).get()
   const driverByNumber = new Map<number, Driver>()
+  const driverByCode = new Map<string, Driver>()
   for (const d of driversSnap.docs) {
     const driver = d.data() as Driver
     driverByNumber.set(driver.number, driver)
+    driverByCode.set(driver.code, driver)
   }
+
+  const jolpicaByRound = new Map<number, typeof jolpicaSprints[0]>()
+  for (const s of jolpicaSprints) jolpicaByRound.set(s.round, s)
 
   const meetingByKey = new Map<number, typeof of1Meetings[0]>()
   for (const m of of1Meetings) meetingByKey.set(m.meeting_key, m)
@@ -98,22 +105,34 @@ async function syncResults(year: number) {
       const existing = existingSnap.exists ? existingSnap.data() as SessionResult : null
       if (existing?.status === 'official') continue
 
+      let results: DriverResult[] = []
+
       const of1Key = sessionKeyIndex.get(`${event.id}_${sessionType}`)
-      if (!of1Key) {
-        console.log(`  No session key for ${event.id}_${sessionType}, skipping.`)
+      if (of1Key) {
+        const positions = await openf1.positions(of1Key)
+        results = processPositions(positions, driverByNumber)
+      }
+
+      if (results.length === 0 && sessionType === 'sprint_race') {
+        const jolpica = jolpicaByRound.get(eventData.round)
+        if (jolpica) {
+          results = jolpica.results
+            .map(r => {
+              const driver = driverByCode.get(r.code)
+              return driver
+                ? { position: r.position, driverId: driver.id, driverCode: driver.code, driverName: driver.name }
+                : null
+            })
+            .filter((r): r is DriverResult => r !== null)
+          if (results.length > 0) console.log(`  Jolpica fallback: ${event.id}_${sessionType}`)
+        }
+      }
+
+      if (results.length === 0) {
+        console.log(`  No data for ${event.id}_${sessionType}, skipping.`)
         skipped++
         continue
       }
-
-      const positions = await openf1.positions(of1Key)
-      if (positions.length === 0) {
-        console.log(`  No position data yet for ${event.id}_${sessionType}, skipping.`)
-        skipped++
-        continue
-      }
-
-      const results = processPositions(positions, driverByNumber)
-      if (results.length === 0) { skipped++; continue }
 
       const msSinceEnd = now.getTime() - endTime.getTime()
       const isOfficial = msSinceEnd >= 3 * 3_600_000
