@@ -63,16 +63,18 @@ async function syncResults(year: number) {
     driverByNumber.set(driver.number, driver)
   }
 
-  const meetingLocation = new Map<number, string>()
-  for (const m of of1Meetings) meetingLocation.set(m.meeting_key, toSlug(m.location))
+  const meetingByKey = new Map<number, typeof of1Meetings[0]>()
+  for (const m of of1Meetings) meetingByKey.set(m.meeting_key, m)
 
   const sessionKeyIndex = new Map<string, number>()
   for (const s of of1Sessions) {
     const tippableType = RESULTS_SESSION_MAP[s.session_type]
     if (!tippableType) continue
-    const locationSlug = meetingLocation.get(s.meeting_key)
-    if (!locationSlug) continue
-    sessionKeyIndex.set(`${locationSlug}_${year}_${tippableType}`, s.session_key)
+    const meeting = meetingByKey.get(s.meeting_key)
+    if (!meeting) continue
+    for (const slug of [toSlug(meeting.location), toSlug(meeting.country_name)]) {
+      sessionKeyIndex.set(`${slug}_${year}_${tippableType}`, s.session_key)
+    }
   }
 
   let resultsAdded = 0, resultsUpdated = 0, scoresCalculated = 0, skipped = 0
