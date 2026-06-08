@@ -13,8 +13,10 @@ export async function getEvents(): Promise<F1Event[]> {
 }
 
 export function subscribeToEvents(cb: (events: F1Event[]) => void): Unsubscribe {
-  return onSnapshot(query(collection(db, 'events'), orderBy('round')), snap =>
-    cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as F1Event)))
+  return onSnapshot(
+    query(collection(db, 'events'), orderBy('round')),
+    snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as F1Event))),
+    err => console.error('[Firestore] subscribeToEvents error:', err)
   )
 }
 
