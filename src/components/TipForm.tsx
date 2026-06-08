@@ -102,6 +102,15 @@ export function TipForm({ sessionType, drivers, existingTip, locked, onSubmit }:
   const [error, setError] = useState('')
   const inputRefs = useRef<Array<HTMLInputElement | null>>(Array(10).fill(null))
 
+  // Key captures session + prediction content so the effect fires whenever predictions
+  // arrive or change — not just when the tip ID changes (which can stay the same
+  // while predictions are missing on a stale snapshot).
+  const tipLoadKey = `${sessionType}:${
+    existingTip
+      ? Array.from({ length: 10 }, (_, i) => existingTip.predictions[String(i + 1)] ?? '').join(',')
+      : 'none'
+  }`
+
   useEffect(() => {
     setSlots(Array.from({ length: 10 }, (_, i) => ({
       key: `slot-${i}`,
@@ -110,7 +119,7 @@ export function TipForm({ sessionType, drivers, existingTip, locked, onSubmit }:
     setSaved(false)
     setError('')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionType, existingTip?.id])
+  }, [tipLoadKey])
 
   const selectedIds = new Set(slots.map(s => s.driverId).filter(Boolean))
 
