@@ -48,6 +48,7 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
   ])
 
   const yearEvents = events.filter(e => e.id.endsWith(`_${year}`))
+  console.log(`[sync] ${yearEvents.length} events, ${of1Sessions.length} sessions, ${drivers.length} drivers`)
   if (yearEvents.length === 0 || of1Sessions.length === 0) return result
 
   const driverByNumber = new Map<number, Driver>()
@@ -89,10 +90,10 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
       if (existing?.status === 'official') continue
 
       const of1Key = sessionKeyIndex.get(`${event.id}_${sessionType}`)
-      if (!of1Key) { result.skipped++; continue }
+      if (!of1Key) { console.log(`[sync] skip (kein Key): ${event.id}_${sessionType}`); result.skipped++; continue }
 
       const positions = await openf1.positions(of1Key)
-      if (positions.length === 0) { result.skipped++; continue }
+      if (positions.length === 0) { console.log(`[sync] skip (keine Positionen): ${event.id}_${sessionType}`); result.skipped++; continue }
 
       const results = processPositions(positions, driverByNumber)
       if (results.length === 0) { result.skipped++; continue }
@@ -111,6 +112,7 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
       }
 
       await saveSessionResult(sessionResult)
+      console.log(`[sync] ${existing ? 'aktualisiert' : 'neu'}: ${sessionResult.id} (${sessionResult.status})`)
       if (existing) result.resultsUpdated++; else result.resultsAdded++
 
       const tips = await getTipsForSession(event.id, sessionType)
@@ -126,6 +128,7 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
           isProvisional: !isOfficial,
           calculatedAt: Timestamp.now(),
         })
+        console.log(`[sync] score: ${tip.userId} / ${event.id}_${sessionType} = ${points} Pkt`)
         result.scoresCalculated++
       }
     }
