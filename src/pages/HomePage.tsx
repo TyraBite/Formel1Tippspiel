@@ -1,11 +1,28 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { subscribeToEvents } from '../lib/firestore'
+import { subscribeToEvents, subscribeToEventTips } from '../lib/firestore'
+import { useAuth } from '../contexts/AuthContext'
 import { CountdownTimer } from '../components/CountdownTimer'
-import type { F1Event } from '../types'
+import type { F1Event, Tip, TippableSessionType } from '../types'
+
+const SESSION_LABELS: Record<TippableSessionType, string> = {
+  qualifying: 'Qualifying',
+  race: 'Rennen',
+  sprint_qualifying: 'Sprint Q',
+  sprint_race: 'Sprint',
+}
+
+const TIPPABLE_SESSION_KEY: Record<TippableSessionType, keyof F1Event['sessions']> = {
+  qualifying: 'qualifying',
+  race: 'race',
+  sprint_qualifying: 'fp3_or_sprint_q',
+  sprint_race: 'sprint_race',
+}
 
 export function HomePage() {
+  const { user } = useAuth()
   const [events, setEvents] = useState<F1Event[]>([])
+  const [myTips, setMyTips] = useState<Tip[]>([])
 
   useEffect(() => subscribeToEvents(setEvents), [])
 
@@ -13,6 +30,13 @@ export function HomePage() {
 
   const upcomingEvents = events.filter(e => e.sessions.race.startTime.toDate() > now)
   const nextEvent = upcomingEvents[0] ?? null
+
+  useEffect(() => {
+    if (!nextEvent) return
+    return subscribeToEventTips(nextEvent.id, tips =>
+      setMyTips(tips.filter(t => t.userId === user?.id))
+    )
+  }, [nextEvent?.id, user?.id])
 
   function nextSession(event: F1Event) {
     const sessions = [
@@ -42,6 +66,34 @@ export function HomePage() {
           {nextSession(nextEvent) && (
             <CountdownTimer target={nextSession(nextEvent)!.startTime} label="Nächste Session" />
           )}
+
+          {(() => {
+            const tippable: TippableSessionType[] = nextEvent.isSprintWeekend
+              ? ['sprint_qualifying', 'sprint_race', 'qualifying', 'race']
+              : ['qualifying', 'race']
+            const openSessions = tippable.filter(st => {
+              const info = nextEvent.sessions[TIPPABLE_SESSION_KEY[st]]
+              return info && info.startTime.toDate() > now
+            })
+            if (openSessions.length === 0) return null
+            return (
+              <div className="flex gap-2 mt-4 flex-wrap">
+                {openSessions.map(st => {
+                  const tipped = myTips.some(t => t.sessionType === st)
+                  return (
+                    <span key={st} className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${
+                      tipped
+                        ? 'border-f1-green text-f1-green'
+                        : 'border-f1-muted text-f1-muted'
+                    }`}>
+                      {tipped ? '✓' : '○'} {SESSION_LABELS[st]}
+                    </span>
+                  )
+                })}
+              </div>
+            )
+          })()}
+
           <Link to={`/event/${nextEvent.id}`} className="btn-primary block text-center mt-4 text-sm">
             Jetzt tippen
           </Link>
