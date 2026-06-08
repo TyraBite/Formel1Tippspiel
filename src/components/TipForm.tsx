@@ -25,7 +25,10 @@ export function TipForm({ sessionType, drivers, existingTip, locked, onSubmit }:
 
   useEffect(() => {
     setPredictions(existingTip?.predictions ?? {})
-  }, [existingTip?.id]) // intentional: re-sync only when tip identity changes
+    setSaved(false)
+    setError('')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionType, existingTip?.id]) // reset on tab change and when tip identity changes
 
   const selectedIds = new Set(Object.values(predictions).filter(Boolean))
 
