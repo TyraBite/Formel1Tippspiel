@@ -48,15 +48,10 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
   ])
 
   const yearEvents = events.filter(e => e.id.endsWith(`_${year}`))
-  console.log('[syncResults] fetched — yearEvents:', yearEvents.length, 'of1Sessions:', of1Sessions.length, 'of1Meetings:', of1Meetings.length, 'drivers:', drivers.length)
-  console.log('[syncResults] sample meeting:', of1Meetings[0])
-  console.log('[syncResults] yearEvent IDs:', yearEvents.map(e => e.id))
   if (yearEvents.length === 0 || of1Sessions.length === 0) return result
 
   const driverByNumber = new Map<number, Driver>()
   for (const d of drivers) driverByNumber.set(d.number, d)
-
-  console.log('[syncResults] driverByNumber size:', driverByNumber.size)
 
   const meetingByKey = new Map<number, typeof of1Meetings[0]>()
   for (const m of of1Meetings) meetingByKey.set(m.meeting_key, m)
@@ -76,8 +71,6 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
     }
   }
 
-  console.log('[syncResults] sessionKeyIndex:', Object.fromEntries(sessionKeyIndex))
-
   const tippableTypes = Object.keys(TIPPABLE_TO_EVENT_SESSION) as TippableSessionType[]
 
   for (const event of yearEvents) {
@@ -96,13 +89,13 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
       if (existing?.status === 'official') continue
 
       const of1Key = sessionKeyIndex.get(`${event.id}_${sessionType}`)
-      if (!of1Key) { console.log(`[syncResults] skip (no of1Key): ${event.id}_${sessionType}`); result.skipped++; continue }
+      if (!of1Key) { result.skipped++; continue }
 
       const positions = await openf1.positions(of1Key)
-      if (positions.length === 0) { console.log(`[syncResults] skip (no positions): ${event.id}_${sessionType}`); result.skipped++; continue }
+      if (positions.length === 0) { result.skipped++; continue }
 
       const results = processPositions(positions, driverByNumber)
-      if (results.length === 0) { console.log(`[syncResults] skip (no results): ${event.id}_${sessionType}`); result.skipped++; continue }
+      if (results.length === 0) { result.skipped++; continue }
 
       const msSinceEnd = now.getTime() - endTime.getTime()
       const isOfficial = msSinceEnd >= 3 * 3_600_000

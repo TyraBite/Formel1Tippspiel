@@ -37,9 +37,12 @@ export interface OpenF1Position {
   position: number
 }
 
-async function get<T>(path: string): Promise<T[]> {
+async function get<T>(path: string, emptyOn404 = false): Promise<T[]> {
   const res = await fetch(`${BASE}${path}`)
-  if (!res.ok) throw new Error(`OpenF1 ${res.status}: ${path}`)
+  if (!res.ok) {
+    if (emptyOn404 && res.status === 404) return []
+    throw new Error(`OpenF1 ${res.status}: ${path}`)
+  }
   return res.json()
 }
 
@@ -47,5 +50,5 @@ export const openf1 = {
   meetings: (year: number) => get<OpenF1Meeting>(`/meetings?year=${year}`),
   sessions: (year: number) => get<OpenF1Session>(`/sessions?year=${year}`),
   drivers: (sessionKey: number) => get<OpenF1Driver>(`/drivers?session_key=${sessionKey}`),
-  positions: (sessionKey: number) => get<OpenF1Position>(`/position?session_key=${sessionKey}`),
+  positions: (sessionKey: number) => get<OpenF1Position>(`/position?session_key=${sessionKey}`, true),
 }
