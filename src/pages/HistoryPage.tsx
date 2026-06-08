@@ -18,17 +18,12 @@ export function HistoryPage() {
 
   useEffect(() => {
     if (!eventId) return
-    const unsubEvents = subscribeToEvents(es => {
-      const e = es.find(e => e.id === eventId) ?? null
-      setEvent(e)
-      if (e) {
-        const parts = eventId.split('_')
-        const year = parseInt(parts[parts.length - 1] ?? String(new Date().getFullYear()))
-        getDrivers(year).then(setDrivers)
-      }
-    })
+    const parts = eventId.split('_')
+    const year = parseInt(parts[parts.length - 1] ?? String(new Date().getFullYear()))
+    const unsubEvents = subscribeToEvents(es => setEvent(es.find(e => e.id === eventId) ?? null))
     getScores(eventId).then(setScores)
     getUsers().then(setUsers)
+    getDrivers(year).then(setDrivers)
     const unsubTips = subscribeToEventTips(eventId, setTips)
     return () => { unsubEvents(); unsubTips() }
   }, [eventId])
