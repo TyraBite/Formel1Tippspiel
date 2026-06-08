@@ -86,36 +86,40 @@ export function LeaderboardPage() {
         )}
       </div>
 
-      {users.length === 2 && sorted.length === 2 && (
-        <div className="card mb-8">
-          <h2 className="text-sm font-semibold text-f1-muted uppercase tracking-wider mb-4">Head to Head</h2>
-          <div className="grid grid-cols-3 text-center gap-4 mb-4">
-            <div>
-              <p className="text-2xl font-bold">{sorted[0].totalPoints}</p>
-              <p className="text-f1-muted text-sm">{sorted[0].user.displayName}</p>
+      {users.length === 2 && sorted.length === 2 && (() => {
+        const me = sorted.find(s => s.user.id === user?.id) ?? sorted[0]
+        const opponent = sorted.find(s => s.user.id !== user?.id) ?? sorted[1]
+        return (
+          <div className="card mb-8">
+            <h2 className="text-sm font-semibold text-f1-muted uppercase tracking-wider mb-4">Head to Head</h2>
+            <div className="grid grid-cols-3 text-center gap-4 mb-4">
+              <div>
+                <p className="text-2xl font-bold">{me.totalPoints}</p>
+                <p className="text-f1-muted text-sm">{me.user.displayName}</p>
+              </div>
+              <div className="text-f1-muted self-center text-sm font-semibold">PUNKTE</div>
+              <div>
+                <p className="text-2xl font-bold">{opponent.totalPoints}</p>
+                <p className="text-f1-muted text-sm">{opponent.user.displayName}</p>
+              </div>
             </div>
-            <div className="text-f1-muted self-center text-sm font-semibold">PUNKTE</div>
-            <div>
-              <p className="text-2xl font-bold">{sorted[1].totalPoints}</p>
-              <p className="text-f1-muted text-sm">{sorted[1].user.displayName}</p>
+            <div className="grid grid-cols-3 text-center gap-4 border-t border-f1-border pt-4">
+              <div>
+                <p className="text-xl font-bold text-f1-green">{me.sessionWins}</p>
+                <p className="text-f1-muted text-xs">Siege</p>
+              </div>
+              <div>
+                <p className="text-xl font-bold text-f1-muted">{me.sessionDraws}</p>
+                <p className="text-f1-muted text-xs">Draws</p>
+              </div>
+              <div>
+                <p className="text-xl font-bold text-f1-green">{opponent.sessionWins}</p>
+                <p className="text-f1-muted text-xs">Siege</p>
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-3 text-center gap-4 border-t border-f1-border pt-4">
-            <div>
-              <p className="text-xl font-bold text-f1-green">{sorted[0].sessionWins}</p>
-              <p className="text-f1-muted text-xs">Siege</p>
-            </div>
-            <div>
-              <p className="text-xl font-bold text-f1-muted">{sorted[0].sessionDraws}</p>
-              <p className="text-f1-muted text-xs">Draws</p>
-            </div>
-            <div>
-              <p className="text-xl font-bold text-f1-green">{sorted[1].sessionWins}</p>
-              <p className="text-f1-muted text-xs">Siege</p>
-            </div>
-          </div>
-        </div>
-      )}
+        )
+      })()}
 
       {pastEvents.length > 0 && (
         <div>
