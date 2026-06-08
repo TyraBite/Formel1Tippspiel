@@ -1,6 +1,89 @@
 import { useState, useEffect, useRef } from 'react'
+import {
+  DndContext, closestCenter, PointerSensor, KeyboardSensor,
+  useSensor, useSensors, type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext, sortableKeyboardCoordinates, useSortable,
+  verticalListSortingStrategy, arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { DriverCombobox } from './DriverCombobox'
 import type { Driver, Tip, TippableSessionType } from '../types'
+
+const SESSION_LABELS: Record<TippableSessionType, string> = {
+  qualifying: 'Qualifying',
+  race: 'Rennen',
+  sprint_qualifying: 'Sprint Qualifying',
+  sprint_race: 'Sprint Race',
+}
+
+interface Slot { key: string; driverId: string }
+
+function GripIcon() {
+  return (
+    <svg width="12" height="18" viewBox="0 0 12 18" fill="currentColor" aria-hidden="true">
+      <circle cx="3" cy="3" r="1.5" />
+      <circle cx="9" cy="3" r="1.5" />
+      <circle cx="3" cy="9" r="1.5" />
+      <circle cx="9" cy="9" r="1.5" />
+      <circle cx="3" cy="15" r="1.5" />
+      <circle cx="9" cy="15" r="1.5" />
+    </svg>
+  )
+}
+
+interface RowProps {
+  slot: Slot
+  pos: number
+  drivers: Driver[]
+  disabledIds: Set<string>
+  locked: boolean
+  onChange: (key: string, driverId: string) => void
+  inputRef: (el: HTMLInputElement | null) => void
+}
+
+function SortableRow({ slot, pos, drivers, disabledIds, locked, onChange, inputRef }: RowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: slot.key,
+    disabled: locked,
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      className="flex items-center gap-2"
+    >
+      {locked ? (
+        <div className="w-5" />
+      ) : (
+        <button
+          {...attributes}
+          {...listeners}
+          className="text-f1-muted hover:text-white cursor-grab active:cursor-grabbing touch-none p-0.5 rounded"
+          tabIndex={-1}
+          type="button"
+          aria-label={`Position ${pos} verschieben`}
+        >
+          <GripIcon />
+        </button>
+      )}
+      <span className="text-f1-muted text-sm w-5 text-right font-mono shrink-0">{pos}</span>
+      <div className="flex-1">
+        <DriverCombobox
+          ref={inputRef}
+          drivers={drivers}
+          value={slot.driverId}
+          onChange={driverId => onChange(slot.key, driverId)}
+          disabledIds={disabledIds}
+          disabled={locked}
+          placeholder={`Position ${pos}`}
+        />
+      </div>
+    </div>
+  )
+}
 
 interface Props {
   sessionType: TippableSessionType
@@ -10,40 +93,59 @@ interface Props {
   onSubmit: (sessionType: TippableSessionType, predictions: Record<string, string>) => Promise<void>
 }
 
-const SESSION_LABELS: Record<TippableSessionType, string> = {
-  qualifying: 'Qualifying',
-  race: 'Rennen',
-  sprint_qualifying: 'Sprint Qualifying',
-  sprint_race: 'Sprint Race',
-}
-
 export function TipForm({ sessionType, drivers, existingTip, locked, onSubmit }: Props) {
-  const [predictions, setPredictions] = useState<Record<string, string>>({})
+  const [slots, setSlots] = useState<Slot[]>(() =>
+    Array.from({ length: 10 }, (_, i) => ({ key: `slot-${i}`, driverId: '' }))
+  )
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const inputRefs = useRef<Array<HTMLInputElement | null>>(Array(10).fill(null))
 
   useEffect(() => {
-    setPredictions(existingTip?.predictions ?? {})
+    setSlots(Array.from({ length: 10 }, (_, i) => ({
+      key: `slot-${i}`,
+      driverId: existingTip?.predictions[String(i + 1)] ?? '',
+    })))
     setSaved(false)
     setError('')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionType, existingTip?.id]) // reset on tab change and when tip identity changes
+  }, [sessionType, existingTip?.id])
 
-  const selectedIds = new Set(Object.values(predictions).filter(Boolean))
+  const selectedIds = new Set(slots.map(s => s.driverId).filter(Boolean))
 
-  function setPosition(pos: number, driverId: string) {
-    setPredictions(prev => ({ ...prev, [String(pos)]: driverId }))
+  function handleSlotChange(key: string, driverId: string) {
+    const idx = slots.findIndex(s => s.key === key)
+    setSlots(prev => prev.map(s => s.key === key ? { ...s, driverId } : s))
     setSaved(false)
-    if (pos < 10) {
-      setTimeout(() => inputRefs.current[pos]?.focus(), 50)
+    if (idx >= 0 && idx < 9) {
+      setTimeout(() => inputRefs.current[idx + 1]?.focus(), 50)
     }
   }
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setSlots(prev => {
+      const oldIndex = prev.findIndex(s => s.key === active.id)
+      const newIndex = prev.findIndex(s => s.key === over.id)
+      return arrayMove(prev, oldIndex, newIndex)
+    })
+    setSaved(false)
+  }
+
   async function handleSubmit() {
-    const filled = Object.keys(predictions).filter(k => predictions[k]).length
-    if (filled < 10) { setError('Bitte alle 10 Positionen ausfüllen'); return }
+    const predictions: Record<string, string> = {}
+    slots.forEach((s, i) => { if (s.driverId) predictions[String(i + 1)] = s.driverId })
+    if (Object.keys(predictions).length < 10) {
+      setError('Bitte alle 10 Positionen ausfüllen')
+      return
+    }
     setSaving(true)
     setError('')
     try {
@@ -66,24 +168,24 @@ export function TipForm({ sessionType, drivers, existingTip, locked, onSubmit }:
           <span className="badge bg-f1-border text-f1-muted">Gesperrt</span>
         )}
       </div>
-      <div className="flex flex-col gap-2">
-        {Array.from({ length: 10 }, (_, i) => i + 1).map(pos => (
-          <div key={pos} className="flex items-center gap-3">
-            <span className="text-f1-muted text-sm w-5 text-right font-mono">{pos}</span>
-            <div className="flex-1">
-              <DriverCombobox
-                ref={el => { inputRefs.current[pos - 1] = el }}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={slots.map(s => s.key)} strategy={verticalListSortingStrategy}>
+          <div className="flex flex-col gap-2">
+            {slots.map((slot, i) => (
+              <SortableRow
+                key={slot.key}
+                slot={slot}
+                pos={i + 1}
                 drivers={drivers}
-                value={predictions[String(pos)] ?? ''}
-                onChange={id => setPosition(pos, id)}
-                disabledIds={new Set([...selectedIds].filter(id => id !== predictions[String(pos)]))}
-                disabled={locked}
-                placeholder={`Position ${pos}`}
+                disabledIds={new Set([...selectedIds].filter(id => id !== slot.driverId))}
+                locked={locked}
+                onChange={handleSlotChange}
+                inputRef={el => { inputRefs.current[i] = el }}
               />
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </SortableContext>
+      </DndContext>
       {!locked && (
         <div className="mt-4 flex items-center gap-3">
           <button onClick={handleSubmit} disabled={saving} className="btn-primary text-sm">
