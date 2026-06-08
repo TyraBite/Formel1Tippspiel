@@ -50,22 +50,26 @@ export function HomePage() {
 
       <h2 className="text-lg font-semibold mb-4">Kommende Events</h2>
       <div className="flex flex-col gap-3">
-        {upcomingEvents.map(event => (
-          <Link key={event.id} to={`/event/${event.id}`}
-            className="card hover:border-f1-red transition-colors flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-f1-muted font-mono text-sm w-6">R{event.round}</span>
-                <span className="font-medium">{event.name}</span>
-                {event.isSprintWeekend && (
-                  <span className="badge bg-f1-red text-white text-xs">S</span>
-                )}
+        {upcomingEvents.map(event => {
+          const raceDate = event.sessions.race.startTime.toDate()
+          const dateStr = raceDate.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })
+          return (
+            <Link key={event.id} to={`/event/${event.id}`}
+              className="card hover:border-f1-red transition-colors flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-f1-muted font-mono text-sm w-6">R{event.round}</span>
+                  <span className="font-medium">{event.name}</span>
+                  {event.isSprintWeekend && (
+                    <span className="badge bg-f1-red text-white text-xs">S</span>
+                  )}
+                </div>
+                <p className="text-f1-muted text-xs ml-8">{event.circuit}</p>
               </div>
-              <p className="text-f1-muted text-xs ml-8">{event.circuit}</p>
-            </div>
-            <span className="text-f1-muted text-xs">Offen</span>
-          </Link>
-        ))}
+              <span className="text-f1-muted text-xs">{dateStr}</span>
+            </Link>
+          )
+        })}
         {upcomingEvents.length === 0 && (
           <p className="text-f1-muted text-sm">Keine weiteren Events in dieser Saison.</p>
         )}
