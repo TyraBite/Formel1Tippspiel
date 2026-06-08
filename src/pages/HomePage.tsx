@@ -52,15 +52,19 @@ export function HomePage() {
   return (
     <div>
       {nextEvent && (
-        <div className="card mb-8 border-f1-red">
+        <div className="card mb-8 border-l-4 border-l-f1-red">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <p className="text-f1-red text-xs font-semibold uppercase tracking-wider mb-1">Nächstes Event</p>
-              <h2 className="text-xl font-bold">{nextEvent.name}</h2>
-              <p className="text-f1-muted text-sm">{nextEvent.circuit}</p>
+              <div className="flex items-center gap-2 mb-2">
+                <p className="text-f1-red text-xs font-bold uppercase tracking-widest">Nächstes Event</p>
+                <span className="text-f1-border">·</span>
+                <span className="text-f1-muted text-xs font-mono font-bold">R{nextEvent.round}</span>
+              </div>
+              <h2 className="text-2xl font-black uppercase tracking-tight leading-tight">{nextEvent.name}</h2>
+              <p className="text-f1-muted text-sm mt-1">{nextEvent.circuit}</p>
             </div>
             {nextEvent.isSprintWeekend && (
-              <span className="badge bg-f1-red text-white">SPRINT</span>
+              <span className="badge bg-f1-red text-white">Sprint</span>
             )}
           </div>
           {nextSession(nextEvent) && (

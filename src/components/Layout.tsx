@@ -7,18 +7,25 @@ export function Layout() {
 
   return (
     <div className="min-h-screen">
-      <nav className="bg-f1-card border-b border-f1-border px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-3 md:gap-6">
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="w-2.5 h-2.5 rounded-full bg-f1-red" />
-            <span className="font-bold tracking-tight text-lg hidden sm:inline">F1 TIPPING</span>
+      <nav className="bg-f1-card border-b border-f1-border border-t-[3px] border-t-f1-red px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+        <div className="flex items-center gap-4 md:gap-7">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex flex-col gap-[3px]">
+              <div className="h-[3px] w-5 bg-f1-red" />
+              <div className="h-[3px] w-5 bg-f1-red" />
+            </div>
+            <span className="font-black tracking-tight text-base uppercase hidden sm:inline">F1 Tipping</span>
           </div>
           <NavLink to="/" end className={({ isActive }) =>
-            isActive ? 'text-white font-medium text-sm' : 'text-f1-muted hover:text-white text-sm transition-colors'}>
+            isActive
+              ? 'text-f1-red font-bold text-sm uppercase tracking-wide'
+              : 'text-f1-muted hover:text-white text-sm uppercase tracking-wide transition-colors'}>
             Home
           </NavLink>
           <NavLink to="/leaderboard" className={({ isActive }) =>
-            isActive ? 'text-white font-medium text-sm' : 'text-f1-muted hover:text-white text-sm transition-colors'}>
+            isActive
+              ? 'text-f1-red font-bold text-sm uppercase tracking-wide'
+              : 'text-f1-muted hover:text-white text-sm uppercase tracking-wide transition-colors'}>
             Rangliste
           </NavLink>
         </div>
@@ -26,7 +33,7 @@ export function Layout() {
           <span className="text-f1-muted text-sm truncate max-w-[80px] md:max-w-none">{user?.displayName}</span>
           <button
             onClick={() => logout().finally(() => navigate('/login'))}
-            className="text-f1-muted hover:text-white text-sm transition-colors whitespace-nowrap">
+            className="text-f1-muted hover:text-white text-sm uppercase tracking-wide transition-colors whitespace-nowrap">
             Abmelden
           </button>
         </div>

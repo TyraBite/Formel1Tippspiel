@@ -8,6 +8,18 @@ Zweispieler-Tippspiel für die Formel-1-Saison 2026. Beide Spieler tippen jeweil
 
 ---
 
+## Design
+
+F1-inspiriertes Dark-Theme. Designprinzipien:
+- Roter 3px-Balken ganz oben (F1-Signature)
+- Zweireihige Rennstreifen im Logo
+- Aktive Nav-Links in F1-Rot, Nav-Text uppercase
+- Cards leicht kantig (`rounded` statt `rounded-lg`)
+- Buttons uppercase mit `tracking-wider` — wie Anzeigetafeln
+- Badges eckig (`rounded-sm`), uppercase
+
+---
+
 ## Lokale Entwicklung
 
 ### Voraussetzungen
