@@ -64,6 +64,20 @@ async function seed() {
     },
   })
 
+  // Test event in the future for local development
+  await db.collection('events').doc('test_2026').set({
+    id: 'test_2026', round: 99, name: 'Test Grand Prix (Lokal)',
+    circuit: 'Test Circuit', country: 'Testland',
+    isSprintWeekend: false,
+    sessions: {
+      fp1: { startTime: ts('2026-12-11T10:00:00Z'), endTime: ts('2026-12-11T11:00:00Z'), status: 'upcoming' },
+      fp2: { startTime: ts('2026-12-12T10:00:00Z'), endTime: ts('2026-12-12T11:00:00Z'), status: 'upcoming' },
+      fp3_or_sprint_q: { startTime: ts('2026-12-13T10:00:00Z'), endTime: ts('2026-12-13T11:00:00Z'), status: 'upcoming' },
+      qualifying: { startTime: ts('2026-12-13T14:00:00Z'), endTime: ts('2026-12-13T15:00:00Z'), status: 'upcoming' },
+      race: { startTime: ts('2026-12-14T14:00:00Z'), endTime: ts('2026-12-14T16:00:00Z'), status: 'upcoming' },
+    },
+  })
+
   console.log('Seeding session results...')
   await db.collection('session_results').doc('bahrain_2026_fp3_or_sprint_q').set({
     id: 'bahrain_2026_fp3_or_sprint_q', eventId: 'bahrain_2026',
