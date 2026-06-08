@@ -49,6 +49,8 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
 
   const yearEvents = events.filter(e => e.id.endsWith(`_${year}`))
   console.log('[syncResults] fetched — yearEvents:', yearEvents.length, 'of1Sessions:', of1Sessions.length, 'of1Meetings:', of1Meetings.length, 'drivers:', drivers.length)
+  console.log('[syncResults] sample meeting:', of1Meetings[0])
+  console.log('[syncResults] yearEvent IDs:', yearEvents.map(e => e.id))
   if (yearEvents.length === 0 || of1Sessions.length === 0) return result
 
   const driverByNumber = new Map<number, Driver>()
