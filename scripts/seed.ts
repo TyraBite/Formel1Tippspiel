@@ -3,7 +3,7 @@ import { getFirestore, connectFirestoreEmulator, setDoc, doc, Timestamp } from '
 import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword } from 'firebase/auth'
 import seasonData from '../data/season-2026.json'
 
-const app = initializeApp({ projectId: 'demo-f1-tipping' })
+const app = initializeApp({ projectId: 'demo-f1-tipping', apiKey: 'demo-key' })
 const db = getFirestore(app)
 const auth = getAuth(app)
 connectFirestoreEmulator(db, 'localhost', 8080)
