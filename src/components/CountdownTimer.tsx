@@ -23,12 +23,17 @@ export function CountdownTimer({ target, label }: Props) {
   const s = Math.floor((diff % 60_000) / 1_000)
   const fmt = (n: number) => String(n).padStart(2, '0')
 
+  const date = target.toDate()
+  const dateStr = date.toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' })
+  const timeStr = date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+
   return (
     <div className="text-center">
       <p className="text-f1-muted text-xs uppercase tracking-wider mb-1">{label} in</p>
       <p className="font-mono text-xl font-bold">
         {h > 0 && <>{fmt(h)}:</>}{fmt(m)}:{fmt(s)}
       </p>
+      <p className="text-f1-muted text-xs mt-1">{dateStr}, {timeStr} Uhr</p>
     </div>
   )
 }
