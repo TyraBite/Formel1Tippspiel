@@ -1,5 +1,5 @@
 import {
-  collection, doc, getDocs, setDoc,
+  collection, doc, getDocs, getDoc, setDoc,
   query, where, orderBy, Timestamp, onSnapshot,
   type Unsubscribe,
 } from 'firebase/firestore'
@@ -69,4 +69,34 @@ export function subscribeToAllScores(cb: (scores: Score[]) => void): Unsubscribe
 export async function getUsers(): Promise<AppUser[]> {
   const snap = await getDocs(collection(db, 'users'))
   return snap.docs.map(d => d.data() as AppUser)
+}
+
+export async function getSessionResult(
+  eventId: string,
+  sessionType: string
+): Promise<SessionResult | null> {
+  const snap = await getDoc(doc(db, 'session_results', `${eventId}_${sessionType}`))
+  return snap.exists() ? (snap.data() as SessionResult) : null
+}
+
+export async function saveSessionResult(result: SessionResult): Promise<void> {
+  await setDoc(doc(db, 'session_results', result.id), result)
+}
+
+export async function saveScore(score: Score): Promise<void> {
+  await setDoc(doc(db, 'scores', score.id), score)
+}
+
+export async function getTipsForSession(
+  eventId: string,
+  sessionType: string
+): Promise<Tip[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, 'tips'),
+      where('eventId', '==', eventId),
+      where('sessionType', '==', sessionType)
+    )
+  )
+  return snap.docs.map(d => d.data() as Tip)
 }
