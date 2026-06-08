@@ -4,8 +4,6 @@ Zweispieler-Tippspiel für die Formel-1-Saison 2026. Beide Spieler tippen jeweil
 
 **Punktewertung:** 1 Punkt für Fahrer korrekt in Top 10 · 3 Punkte für exakte Position · Max. 30 Punkte pro Session
 
-**Live:** https://tyrabite.github.io/Formel1Tippspiel/
-
 ---
 
 ## Design
