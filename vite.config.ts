@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/f1-tipping-game/',
+  base: '/Formel1Tippspiel/',
   test: {
     environment: 'node',
     globals: true,
