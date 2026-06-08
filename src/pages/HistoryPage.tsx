@@ -22,7 +22,8 @@ export function HistoryPage() {
       const e = es.find(e => e.id === eventId) ?? null
       setEvent(e)
       if (e) {
-        const year = parseInt(eventId.split('_').at(-1) ?? String(new Date().getFullYear()))
+        const parts = eventId.split('_')
+        const year = parseInt(parts[parts.length - 1] ?? String(new Date().getFullYear()))
         getDrivers(year).then(setDrivers)
       }
     })
