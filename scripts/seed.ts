@@ -1,20 +1,22 @@
-import { initializeApp } from 'firebase/app'
-import { getFirestore, connectFirestoreEmulator, setDoc, doc, Timestamp } from 'firebase/firestore'
-import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword } from 'firebase/auth'
+import { initializeApp } from 'firebase-admin/app'
+import { getFirestore, Timestamp } from 'firebase-admin/firestore'
+import { getAuth } from 'firebase-admin/auth'
 import seasonData from '../data/season-2026.json'
 
-const app = initializeApp({ projectId: 'demo-f1-tipping', apiKey: 'demo-key' })
+// Point Admin SDK to local emulators (bypasses security rules)
+process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080'
+process.env.FIREBASE_AUTH_EMULATOR_HOST = 'localhost:9099'
+
+const app = initializeApp({ projectId: 'demo-f1-tipping' })
 const db = getFirestore(app)
 const auth = getAuth(app)
-connectFirestoreEmulator(db, 'localhost', 8080)
-connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true })
 
 function ts(iso: string) { return Timestamp.fromDate(new Date(iso)) }
 
 async function seed() {
   console.log('Seeding drivers...')
   for (const driver of seasonData.drivers) {
-    await setDoc(doc(db, 'drivers', driver.id), driver)
+    await db.collection('drivers').doc(driver.id).set(driver)
   }
 
   console.log('Seeding users...')
@@ -24,16 +26,19 @@ async function seed() {
   ]
   for (const u of users) {
     try {
-      const cred = await createUserWithEmailAndPassword(auth, u.email, u.password)
-      await setDoc(doc(db, 'users', cred.user.uid), {
-        id: cred.user.uid, email: u.email, displayName: u.displayName,
+      const userRecord = await auth.createUser({
+        email: u.email,
+        password: u.password,
+        displayName: u.displayName,
+      })
+      await db.collection('users').doc(userRecord.uid).set({
+        id: userRecord.uid, email: u.email, displayName: u.displayName,
       })
     } catch { /* already exists */ }
   }
 
   console.log('Seeding events...')
-  // Normal weekend
-  await setDoc(doc(db, 'events', 'bahrain_2026'), {
+  await db.collection('events').doc('bahrain_2026').set({
     id: 'bahrain_2026', round: 1, name: 'Bahrain Grand Prix',
     circuit: 'Bahrain International Circuit', country: 'Bahrain',
     isSprintWeekend: false,
@@ -46,8 +51,7 @@ async function seed() {
     },
   })
 
-  // Sprint weekend
-  await setDoc(doc(db, 'events', 'china_2026'), {
+  await db.collection('events').doc('china_2026').set({
     id: 'china_2026', round: 2, name: 'Chinese Grand Prix',
     circuit: 'Shanghai International Circuit', country: 'China',
     isSprintWeekend: true,
@@ -60,8 +64,8 @@ async function seed() {
     },
   })
 
-  // FP3 result for Bahrain (reference for qualifying tips)
-  await setDoc(doc(db, 'session_results', 'bahrain_2026_fp3_or_sprint_q'), {
+  console.log('Seeding session results...')
+  await db.collection('session_results').doc('bahrain_2026_fp3_or_sprint_q').set({
     id: 'bahrain_2026_fp3_or_sprint_q', eventId: 'bahrain_2026',
     sessionType: 'fp3_or_sprint_q', status: 'official',
     fetchedAt: Timestamp.now(), officialAt: Timestamp.now(),
@@ -84,8 +88,7 @@ async function seed() {
     ],
   })
 
-  // Qualifying result for Bahrain (reference for race tips)
-  await setDoc(doc(db, 'session_results', 'bahrain_2026_qualifying'), {
+  await db.collection('session_results').doc('bahrain_2026_qualifying').set({
     id: 'bahrain_2026_qualifying', eventId: 'bahrain_2026',
     sessionType: 'qualifying', status: 'official',
     fetchedAt: Timestamp.now(), officialAt: Timestamp.now(),
@@ -108,7 +111,7 @@ async function seed() {
     ],
   })
 
-  console.log('Done! Login: player1@test.com / test1234')
+  console.log('Done! Login: spieler1 / test1234')
 }
 
 seed().catch(console.error).finally(() => process.exit(0))
