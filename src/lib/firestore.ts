@@ -71,6 +71,11 @@ export async function getUsers(): Promise<AppUser[]> {
   return snap.docs.map(d => d.data() as AppUser)
 }
 
+export async function getEventSessionResults(eventId: string): Promise<SessionResult[]> {
+  const snap = await getDocs(query(collection(db, 'session_results'), where('eventId', '==', eventId)))
+  return snap.docs.map(d => d.data() as SessionResult)
+}
+
 export async function getSessionResult(
   eventId: string,
   sessionType: string
