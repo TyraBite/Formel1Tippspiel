@@ -1,0 +1,30 @@
+name: Seed Tips
+
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: 'Seed script to run'
+        required: true
+        default: 'seed:tips-monaco'
+        type: choice
+        options:
+          - seed:tips-monaco
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run seed script
+        run: npm run ${{ github.event.inputs.script }}
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
