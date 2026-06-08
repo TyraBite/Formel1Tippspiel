@@ -9,13 +9,13 @@ export function Layout() {
     <div className="min-h-screen">
       <nav className="bg-f1-card border-b border-f1-border border-t-[3px] border-t-f1-red px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-4 md:gap-7">
-          <div className="flex items-center gap-2.5 shrink-0">
+          <NavLink to="/" end className="flex items-center gap-2.5 shrink-0">
             <div className="flex flex-col gap-[3px]">
               <div className="h-[3px] w-5 bg-f1-red" />
               <div className="h-[3px] w-5 bg-f1-red" />
             </div>
-            <span className="font-black tracking-tight text-base uppercase hidden sm:inline">F1 Tipping</span>
-          </div>
+            <span className="font-black tracking-tight text-base uppercase hidden sm:inline text-white">F1 Tipping</span>
+          </NavLink>
           <NavLink to="/" end className={({ isActive }) =>
             isActive
               ? 'text-f1-red font-bold text-sm uppercase tracking-wide'
