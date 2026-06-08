@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { subscribeToEvents, getScores, getUsers, subscribeToEventTips } from '../lib/firestore'
-import type { F1Event, Score, AppUser, Tip, TippableSessionType } from '../types'
+import { subscribeToEvents, getScores, getUsers, getDrivers, subscribeToEventTips } from '../lib/firestore'
+import type { F1Event, Score, AppUser, Tip, TippableSessionType, Driver } from '../types'
 
 const SESSION_LABELS: Record<TippableSessionType, string> = {
   qualifying: 'Qualifying', race: 'Rennen',
@@ -14,18 +14,25 @@ export function HistoryPage() {
   const [scores, setScores] = useState<Score[]>([])
   const [users, setUsers] = useState<AppUser[]>([])
   const [tips, setTips] = useState<Tip[]>([])
+  const [drivers, setDrivers] = useState<Driver[]>([])
 
   useEffect(() => {
     if (!eventId) return
-    const unsubEvents = subscribeToEvents(es => setEvent(es.find(e => e.id === eventId) ?? null))
+    const unsubEvents = subscribeToEvents(es => {
+      const e = es.find(e => e.id === eventId) ?? null
+      setEvent(e)
+      if (e) {
+        const year = parseInt(eventId.split('_').at(-1) ?? String(new Date().getFullYear()))
+        getDrivers(year).then(setDrivers)
+      }
+    })
     getScores(eventId).then(setScores)
     getUsers().then(setUsers)
-    // Phase 2: lockedAt is set by the sync job when a session starts.
-    // Until then, Firestore rules only return the current user's own tips.
-    // Opponent tips become visible once the session starts (Phase 2).
     const unsubTips = subscribeToEventTips(eventId, setTips)
     return () => { unsubEvents(); unsubTips() }
   }, [eventId])
+
+  const driverName = (id: string) => drivers.find(d => d.id === id)?.name ?? id
 
   if (!event) return <div className="text-f1-muted">Laden...</div>
 
@@ -71,7 +78,7 @@ export function HistoryPage() {
                             }`}>
                               <span className="text-f1-muted font-mono w-4">{b.pos}</span>
                               <span className={b.points > 0 ? 'text-white' : 'text-f1-muted'}>
-                                {b.predictedDriverId || '–'}
+                                {b.predictedDriverId ? driverName(b.predictedDriverId) : '–'}
                               </span>
                               {b.points === 3 && <span className="text-f1-gold text-xs ml-auto">+3</span>}
                               {b.points === 1 && <span className="text-f1-green text-xs ml-auto">+1</span>}
@@ -83,7 +90,7 @@ export function HistoryPage() {
                             .map(([pos, driverId]) => (
                               <div key={pos} className="flex items-center gap-2 py-0.5 px-1">
                                 <span className="text-f1-muted font-mono w-4">{pos}</span>
-                                <span className="text-f1-muted">{driverId || '–'}</span>
+                                <span className="text-f1-muted">{driverId ? driverName(driverId) : '–'}</span>
                               </div>
                             ))
                         )}
