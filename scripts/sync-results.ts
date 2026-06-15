@@ -105,14 +105,21 @@ async function syncResults(year: number) {
       const existing = existingSnap.exists ? existingSnap.data() as SessionResult : null
       const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 3_600_000)
       const officialAt = (existing?.officialAt as any)?.toDate?.()
-      if (existing?.status === 'official' && officialAt && officialAt < twoWeeksAgo) continue
+      if (existing?.status === 'official' && officialAt && officialAt < twoWeeksAgo) {
+        console.log(`  ${event.id}_${sessionType}: offiziell seit ${officialAt.toISOString().slice(0,10)}, älter als 2 Wochen → übersprungen`)
+        continue
+      }
 
       let results: DriverResult[] = []
 
       const of1Key = sessionKeyIndex.get(`${event.id}_${sessionType}`)
       if (of1Key) {
         const positions = await openf1.positions(of1Key)
+        console.log(`  OpenF1 session_key=${of1Key}: ${positions.length} Positionen, ${driverByNumber.size} Fahrer gemappt`)
         results = processPositions(positions, driverByNumber)
+        console.log(`  processPositions: ${results.length} Ergebnisse`)
+      } else {
+        console.log(`  Kein OpenF1-Key für ${event.id}_${sessionType} (verfügbare Keys: ${[...sessionKeyIndex.keys()].filter(k => k.endsWith(`_${sessionType}`)).join(', ') || 'keine'})`)
       }
 
       if (results.length === 0 && sessionType === 'sprint_race') {
@@ -131,7 +138,7 @@ async function syncResults(year: number) {
       }
 
       if (results.length === 0) {
-        console.log(`  No data for ${event.id}_${sessionType}, skipping.`)
+        console.log(`  Keine Daten für ${event.id}_${sessionType}, übersprungen.`)
         skipped++
         continue
       }
