@@ -6,10 +6,11 @@ export function processSessionResults(
   driverByNumber: Map<number, Driver>
 ): DriverResult[] {
   return results
+    .filter(r => r.position !== null)
     .map(r => {
       const driver = driverByNumber.get(r.driver_number)
       return driver
-        ? { position: r.position, driverId: driver.id, driverCode: driver.code, driverName: driver.name }
+        ? { position: r.position as number, driverId: driver.id, driverCode: driver.code, driverName: driver.name }
         : null
     })
     .filter((r): r is DriverResult => r !== null)

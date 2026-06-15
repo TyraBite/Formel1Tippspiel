@@ -41,7 +41,7 @@ export interface OpenF1SessionResult {
   session_key: number
   meeting_key: number
   driver_number: number
-  position: number
+  position: number | null  // null for unclassified DNF/DNS
   points: number
   dnf: boolean
   dns: boolean
