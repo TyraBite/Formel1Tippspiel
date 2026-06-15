@@ -37,6 +37,20 @@ export interface OpenF1Position {
   position: number
 }
 
+export interface OpenF1SessionResult {
+  session_key: number
+  meeting_key: number
+  driver_number: number
+  position: number
+  points: number
+  dnf: boolean
+  dns: boolean
+  dsq: boolean
+  duration: number | null
+  gap_to_leader: number | string
+  number_of_laps: number
+}
+
 async function get<T>(path: string, emptyOn404 = false): Promise<T[]> {
   const res = await fetch(`${BASE}${path}`)
   if (!res.ok) {
@@ -51,4 +65,5 @@ export const openf1 = {
   sessions: (year: number) => get<OpenF1Session>(`/sessions?year=${year}`),
   drivers: (sessionKey: number) => get<OpenF1Driver>(`/drivers?session_key=${sessionKey}`),
   positions: (sessionKey: number) => get<OpenF1Position>(`/position?session_key=${sessionKey}`, true),
+  sessionResults: (sessionKey: number) => get<OpenF1SessionResult>(`/session_result?session_key=${sessionKey}`, true),
 }
