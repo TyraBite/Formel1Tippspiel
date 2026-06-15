@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { subscribeToEvents, subscribeToEventScores, subscribeToEventSessionResults, getUsers, getDrivers, subscribeToEventTips } from '../lib/firestore'
 import { useAuth } from '../contexts/AuthContext'
 import { useLivePositions } from '../lib/useLivePositions'
+import { usePracticePositions, type PracticeSessionKey } from '../lib/usePracticePositions'
 import type { F1Event, Score, AppUser, Tip, TippableSessionType, Driver, SessionResult } from '../types'
 
 const SESSION_LABELS: Record<TippableSessionType, string> = {
@@ -41,6 +42,10 @@ export function HistoryPage() {
     qualifying: liveQualifying, race: liveRace,
     sprint_qualifying: liveSprintQ, sprint_race: liveSprintRace,
   }
+
+  const fp1Data = usePracticePositions(event, 'fp1', drivers)
+  const fp2Data = usePracticePositions(event, 'fp2', drivers)
+  const fp3Data = usePracticePositions(event, 'fp3_or_sprint_q', drivers)
 
   if (!event) return <div className="text-f1-muted">Laden...</div>
 
@@ -96,6 +101,53 @@ export function HistoryPage() {
           )}
         </div>
       )}
+
+      {(() => {
+        const FP_LABELS: Record<PracticeSessionKey, string> = {
+          fp1: 'Freies Training 1',
+          fp2: 'Freies Training 2',
+          fp3_or_sprint_q: 'Freies Training 3',
+        }
+        const fpSessions: { key: PracticeSessionKey; data: typeof fp1Data }[] = [
+          { key: 'fp1', data: fp1Data },
+          ...(!event.isSprintWeekend
+            ? [
+                { key: 'fp2' as PracticeSessionKey, data: fp2Data },
+                { key: 'fp3_or_sprint_q' as PracticeSessionKey, data: fp3Data },
+              ]
+            : []),
+        ]
+        const visibleFP = fpSessions.filter(fp => fp.data.status !== 'pending')
+        if (visibleFP.length === 0) return null
+        return visibleFP.map(({ key, data }) => (
+          <div key={key} className="card mb-4">
+            <div className="flex items-center gap-3 mb-3">
+              <h2 className="font-bold uppercase tracking-wide text-sm text-f1-muted">
+                {FP_LABELS[key]}
+              </h2>
+              {data.isLive && (
+                <span className="flex items-center gap-1.5 text-xs font-bold text-f1-red uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-f1-red animate-pulse" />
+                  Live
+                </span>
+              )}
+            </div>
+            {data.status === 'loading' && <p className="text-f1-muted text-sm">Lade…</p>}
+            {data.status === 'empty' && <p className="text-f1-muted text-sm">Keine Daten verfügbar</p>}
+            {data.status === 'loaded' && (
+              <div className="space-y-0.5">
+                {data.positions.slice(0, 10).map(dr => (
+                  <div key={dr.driverId} className="flex items-center gap-2 py-1 px-1.5 text-sm">
+                    <span className="text-f1-muted font-mono text-xs w-4 shrink-0">{dr.position}</span>
+                    <span className="font-mono text-xs w-8 shrink-0 text-f1-muted">{dr.driverCode}</span>
+                    <span className="text-f1-muted text-xs">{dr.driverName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))
+      })()}
 
       {tippable.map(sessionType => {
         const sessionScores = scores.filter(s => s.sessionType === sessionType)

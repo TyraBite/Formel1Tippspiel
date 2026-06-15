@@ -3,10 +3,11 @@ import { useParams } from 'react-router-dom'
 import { subscribeToEvents, getDrivers } from '../lib/firestore'
 import { useTips } from '../hooks/useTips'
 import { useSessionResult } from '../hooks/useSessionResults'
+import { usePracticePositions } from '../lib/usePracticePositions'
 import { TipForm } from '../components/TipForm'
 import { ReferenceTable } from '../components/ReferenceTable'
 import { CountdownTimer } from '../components/CountdownTimer'
-import type { F1Event, Driver, TippableSessionType } from '../types'
+import type { F1Event, Driver, TippableSessionType, DriverResult } from '../types'
 
 const SESSION_LABELS: Record<TippableSessionType, string> = {
   qualifying: 'Qualifying',
@@ -15,11 +16,11 @@ const SESSION_LABELS: Record<TippableSessionType, string> = {
   sprint_race: 'Sprint Race',
 }
 
-const REF_SESSION: Record<TippableSessionType, string> = {
-  qualifying: 'fp3_or_sprint_q',
-  race: 'qualifying',
-  sprint_qualifying: 'fp1',
-  sprint_race: 'fp3_or_sprint_q',
+interface RefInfo {
+  results: DriverResult[] | null
+  label: string
+  isProvisional?: boolean
+  isLoading?: boolean
 }
 
 export function EventPage() {
@@ -39,15 +40,14 @@ export function EventPage() {
 
   const { getTip, isLocked, submitTip } = useTips(event)
 
-  const refSessionType = REF_SESSION[activeTab]
-  const refResult = useSessionResult(eventId, refSessionType)
+  // Firestore subscriptions for tippable session results
+  const qualifyingResult  = useSessionResult(eventId, 'qualifying')
+  const sprintQResult     = useSessionResult(eventId, 'sprint_qualifying')
 
-  const refLabel: Record<TippableSessionType, string> = {
-    qualifying: event?.isSprintWeekend ? 'Sprint Qualifying Ergebnis' : 'FP3 Ergebnis',
-    race: 'Qualifying Ergebnis',
-    sprint_qualifying: 'FP1 Ergebnis',
-    sprint_race: 'Sprint Qualifying Ergebnis',
-  }
+  // OpenF1 practice session data (live or ended)
+  const fp1Data = usePracticePositions(event, 'fp1', drivers)
+  const fp2Data = usePracticePositions(event, 'fp2', drivers)
+  const fp3Data = usePracticePositions(event, 'fp3_or_sprint_q', drivers)
 
   const tippableSessions: TippableSessionType[] = event?.isSprintWeekend
     ? ['sprint_qualifying', 'sprint_race', 'qualifying', 'race']
@@ -63,6 +63,55 @@ export function EventPage() {
   })()
 
   if (!event) return <div className="text-f1-muted">Laden...</div>
+
+  const now = new Date()
+
+  function bestFP(): { results: DriverResult[]; label: string } | null {
+    const fp3Ended = (event!.sessions.fp3_or_sprint_q?.endTime.toDate() ?? new Date(0)) <= now
+    const fp2Ended = (event!.sessions.fp2?.endTime.toDate() ?? new Date(0)) <= now
+    const fp1Ended = (event!.sessions.fp1?.endTime.toDate() ?? new Date(0)) <= now
+    if (fp3Ended && fp3Data.status === 'loaded') return { results: fp3Data.positions, label: 'FP3 Ergebnis' }
+    if (fp2Ended && fp2Data.status === 'loaded') return { results: fp2Data.positions, label: 'FP2 Ergebnis' }
+    if (fp1Ended && fp1Data.status === 'loaded') return { results: fp1Data.positions, label: 'FP1 Ergebnis' }
+    return null
+  }
+
+  const refInfo: RefInfo = (() => {
+    if (activeTab === 'race') {
+      return {
+        results: qualifyingResult?.results ?? null,
+        label: 'Qualifying Ergebnis',
+        isProvisional: qualifyingResult?.status === 'provisional',
+      }
+    }
+    if (activeTab === 'sprint_race') {
+      return {
+        results: sprintQResult?.results ?? null,
+        label: 'Sprint Qualifying Ergebnis',
+        isProvisional: sprintQResult?.status === 'provisional',
+      }
+    }
+    if (activeTab === 'qualifying') {
+      if (event.isSprintWeekend) {
+        return {
+          results: sprintQResult?.results ?? null,
+          label: 'Sprint Qualifying Ergebnis',
+          isProvisional: sprintQResult?.status === 'provisional',
+        }
+      }
+      const fp = bestFP()
+      const fpLoading = fp1Data.status === 'loading' || fp2Data.status === 'loading' || fp3Data.status === 'loading'
+      return fp ?? { results: null, label: 'Freies Training', isLoading: fpLoading }
+    }
+    if (activeTab === 'sprint_qualifying') {
+      return {
+        results: fp1Data.status === 'loaded' ? fp1Data.positions : null,
+        label: 'FP1 Ergebnis',
+        isLoading: fp1Data.status === 'loading',
+      }
+    }
+    return { results: null, label: '' }
+  })()
 
   return (
     <div>
@@ -109,7 +158,12 @@ export function EventPage() {
           />
         </div>
         <div>
-          <ReferenceTable result={refResult} label={refLabel[activeTab]} />
+          <ReferenceTable
+            results={refInfo.results}
+            label={refInfo.label}
+            isProvisional={refInfo.isProvisional}
+            isLoading={refInfo.isLoading}
+          />
         </div>
       </div>
     </div>

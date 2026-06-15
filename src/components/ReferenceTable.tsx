@@ -1,12 +1,22 @@
-import type { SessionResult } from '../types'
+import type { DriverResult } from '../types'
 
 interface Props {
-  result: SessionResult | null
+  results: DriverResult[] | null
   label: string
+  isProvisional?: boolean
+  isLoading?: boolean
 }
 
-export function ReferenceTable({ result, label }: Props) {
-  if (!result) {
+export function ReferenceTable({ results, label, isProvisional, isLoading }: Props) {
+  if (isLoading) {
+    return (
+      <div className="card">
+        <p className="text-f1-muted text-sm">{label} — Lade…</p>
+      </div>
+    )
+  }
+
+  if (!results) {
     return (
       <div className="card">
         <p className="text-f1-muted text-sm">{label} — Noch nicht verfügbar</p>
@@ -14,7 +24,7 @@ export function ReferenceTable({ result, label }: Props) {
     )
   }
 
-  const top15 = result.results.filter(r => r.position <= 15)
+  const top15 = results.filter(r => r.position <= 15)
 
   return (
     <div className="card">
@@ -30,7 +40,7 @@ export function ReferenceTable({ result, label }: Props) {
           ))}
         </tbody>
       </table>
-      {result.status === 'provisional' && (
+      {isProvisional && (
         <p className="text-yellow-400 text-xs mt-2">⚠ Vorläufig — Investigations offen</p>
       )}
     </div>
