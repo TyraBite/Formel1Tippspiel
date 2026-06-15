@@ -1,6 +1,7 @@
 import { initializeApp, cert } from 'firebase-admin/app'
 import { getFirestore, Timestamp } from 'firebase-admin/firestore'
 import { openf1 } from '../src/lib/openf1'
+import type { OpenF1Session } from '../src/lib/openf1'
 import { calculateScore } from '../src/lib/scoring'
 import { processSessionResults, processPositions } from '../src/lib/resultProcessing'
 import type { F1Event, Driver, DriverResult, SessionResult, Score, Tip, TippableSessionType } from '../src/types'
@@ -9,14 +10,6 @@ const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!)
 initializeApp({ credential: cert(serviceAccount) })
 const db = getFirestore()
 
-const RESULTS_SESSION_MAP: Partial<Record<string, TippableSessionType>> = {
-  'Race': 'race',
-  'Qualifying': 'qualifying',
-  'Sprint': 'sprint_race',
-  'Sprint Qualifying': 'sprint_qualifying',
-  'Sprint Shootout': 'sprint_qualifying',
-}
-
 const TIPPABLE_TO_EVENT_SESSION: Record<TippableSessionType, string> = {
   qualifying: 'qualifying',
   race: 'race',
@@ -24,23 +17,29 @@ const TIPPABLE_TO_EVENT_SESSION: Record<TippableSessionType, string> = {
   sprint_qualifying: 'fp3_or_sprint_q',
 }
 
-function toSlug(str: string): string {
-  return str
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_|_$/g, '')
+// Match an OpenF1 session to a Firestore session slot by start time proximity.
+// Sprint and regular sessions share the same session_type name in OpenF1 ("Race" / "Qualifying"),
+// so slug-based matching cannot distinguish them. Time-based matching works because sprint and
+// main sessions are always on different days.
+function findOpenF1Session(sessions: OpenF1Session[], expectedStart: Date): number | undefined {
+  const MAX_DIFF_MS = 2 * 3_600_000
+  let best: number | undefined
+  let bestDiff = MAX_DIFF_MS
+  for (const s of sessions) {
+    const diff = Math.abs(new Date(s.date_start).getTime() - expectedStart.getTime())
+    if (diff < bestDiff) {
+      bestDiff = diff
+      best = s.session_key
+    }
+  }
+  return best
 }
 
 async function syncResults(year: number) {
   const now = new Date()
   console.log(`\nSyncing results for ${year}...`)
 
-  const [of1Sessions, of1Meetings] = await Promise.all([
-    openf1.sessions(year),
-    openf1.meetings(year),
-  ])
+  const of1Sessions = await openf1.sessions(year)
 
   if (of1Sessions.length === 0) {
     console.log(`No OpenF1 sessions found for ${year}, skipping.`)
@@ -64,27 +63,9 @@ async function syncResults(year: number) {
     driverByNumber.set(driver.number, driver)
   }
 
-  const meetingByKey = new Map<number, typeof of1Meetings[0]>()
-  for (const m of of1Meetings) meetingByKey.set(m.meeting_key, m)
-
-  const sessionKeyIndex = new Map<string, number>()
-  for (const s of of1Sessions) {
-    const tippableType = RESULTS_SESSION_MAP[s.session_type]
-    if (!tippableType) continue
-    const meeting = meetingByKey.get(s.meeting_key)
-    if (!meeting) continue
-    const meetingFirstWord = toSlug(meeting.meeting_name.split(' ')[0])
-    for (const slug of new Set([toSlug(meeting.location), toSlug(meeting.country_name), meetingFirstWord])) {
-      sessionKeyIndex.set(`${slug}_${year}_${tippableType}`, s.session_key)
-    }
-  }
-
-  const unmapped = [...new Set(of1Sessions.map(s => s.session_type).filter(t => !(t in RESULTS_SESSION_MAP)))]
-  if (unmapped.length) console.log(`  Unbekannte Session-Typen von OpenF1: ${unmapped.join(', ')}`)
-
   const usersSnap = await db.collection('users').get()
   const userIds = usersSnap.docs.map(d => d.id)
-  console.log(`  ${userIds.length} Spieler geladen`)
+  console.log(`  ${userIds.length} Spieler, ${of1Sessions.length} Sessions, ${yearEvents.length} Events`)
 
   let resultsAdded = 0, resultsUpdated = 0, scoresCalculated = 0, skipped = 0
 
@@ -113,19 +94,19 @@ async function syncResults(year: number) {
 
       let results: DriverResult[] = []
 
-      const of1Key = sessionKeyIndex.get(`${event.id}_${sessionType}`)
+      const of1Key = findOpenF1Session(of1Sessions, sessionInfo.startTime.toDate())
       if (of1Key) {
         const sessionRes = await openf1.sessionResults(of1Key)
-        console.log(`  OpenF1 session_result session_key=${of1Key}: ${sessionRes.length} Einträge`)
+        console.log(`  session_key=${of1Key}: ${sessionRes.length} Einträge (session_result)`)
         results = processSessionResults(sessionRes, driverByNumber)
         if (results.length === 0) {
           const positions = await openf1.positions(of1Key)
-          console.log(`  OpenF1 /position session_key=${of1Key}: ${positions.length} Positionen (Fallback)`)
+          console.log(`  session_key=${of1Key}: ${positions.length} Positionen (Fallback /position)`)
           results = processPositions(positions, driverByNumber)
         }
-        console.log(`  Ergebnis: ${results.length} Fahrer`)
+        console.log(`  ${event.id}_${sessionType}: ${results.length} Fahrer`)
       } else {
-        console.log(`  Kein OpenF1-Key für ${event.id}_${sessionType} (verfügbare Keys: ${[...sessionKeyIndex.keys()].filter(k => k.endsWith(`_${sessionType}`)).join(', ') || 'keine'})`)
+        console.log(`  Kein OpenF1-Key für ${event.id}_${sessionType}`)
       }
 
       if (results.length === 0) {

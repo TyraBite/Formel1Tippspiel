@@ -1,5 +1,6 @@
 import { Timestamp } from 'firebase/firestore'
 import { openf1 } from './openf1'
+import type { OpenF1Session } from './openf1'
 import { processSessionResults, processPositions } from './resultProcessing'
 import { getEvents, getDrivers, getSessionResult, saveSessionResult, saveScore, getTipsForSession } from './firestore'
 import { calculateScore } from './scoring'
@@ -13,14 +14,6 @@ export interface SyncResultsResult {
   skipped: number
 }
 
-const RESULTS_SESSION_MAP: Partial<Record<string, TippableSessionType>> = {
-  'Race': 'race',
-  'Qualifying': 'qualifying',
-  'Sprint': 'sprint_race',
-  'Sprint Qualifying': 'sprint_qualifying',
-  'Sprint Shootout': 'sprint_qualifying',
-}
-
 const TIPPABLE_TO_EVENT_SESSION: Record<TippableSessionType, keyof F1Event['sessions']> = {
   qualifying: 'qualifying',
   race: 'race',
@@ -28,24 +21,32 @@ const TIPPABLE_TO_EVENT_SESSION: Record<TippableSessionType, keyof F1Event['sess
   sprint_qualifying: 'fp3_or_sprint_q',
 }
 
-function toSlug(str: string): string {
-  return str
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_|_$/g, '')
+// Match an OpenF1 session to a Firestore session slot by start time proximity.
+// Sprint and regular sessions share the same session_type name in OpenF1 ("Race" / "Qualifying"),
+// so slug-based matching cannot distinguish them. Time-based matching works because sprint and
+// main sessions are always on different days.
+function findOpenF1Session(sessions: OpenF1Session[], expectedStart: Date): number | undefined {
+  const MAX_DIFF_MS = 2 * 3_600_000
+  let best: number | undefined
+  let bestDiff = MAX_DIFF_MS
+  for (const s of sessions) {
+    const diff = Math.abs(new Date(s.date_start).getTime() - expectedStart.getTime())
+    if (diff < bestDiff) {
+      bestDiff = diff
+      best = s.session_key
+    }
+  }
+  return best
 }
 
 export async function syncResults(year: number): Promise<SyncResultsResult> {
   const result: SyncResultsResult = { year, resultsAdded: 0, resultsUpdated: 0, scoresCalculated: 0, skipped: 0 }
   const now = new Date()
 
-  const [events, drivers, of1Sessions, of1Meetings] = await Promise.all([
+  const [events, drivers, of1Sessions] = await Promise.all([
     getEvents(),
     getDrivers(year),
     openf1.sessions(year),
-    openf1.meetings(year),
   ])
 
   const yearEvents = events.filter(e => e.id.endsWith(`_${year}`))
@@ -55,32 +56,10 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
   const driverByNumber = new Map<number, Driver>()
   for (const d of drivers) driverByNumber.set(d.number, d)
 
-  const meetingByKey = new Map<number, typeof of1Meetings[0]>()
-  for (const m of of1Meetings) meetingByKey.set(m.meeting_key, m)
-
-  // Index by both location (city) and country_name slugs: OpenF1 uses city names
-  // ("Melbourne", "Shanghai") but Firestore event IDs use country names ("australia", "china")
-  const sessionKeyIndex = new Map<string, number>()
-  for (const s of of1Sessions) {
-    const tippableType = RESULTS_SESSION_MAP[s.session_type]
-    if (!tippableType) continue
-    const meeting = meetingByKey.get(s.meeting_key)
-    if (!meeting) continue
-    // Extract first word of meeting_name for edge cases like "miami" from "Miami Grand Prix"
-    const meetingFirstWord = toSlug(meeting.meeting_name.split(' ')[0])
-    for (const slug of new Set([toSlug(meeting.location), toSlug(meeting.country_name), meetingFirstWord])) {
-      sessionKeyIndex.set(`${slug}_${year}_${tippableType}`, s.session_key)
-    }
-  }
-
-  const unmapped = [...new Set(of1Sessions.map(s => s.session_type).filter(t => !(t in RESULTS_SESSION_MAP)))]
-  if (unmapped.length) console.log('[sync] ungemappte Session-Typen:', unmapped)
-
   const tippableTypes = Object.keys(TIPPABLE_TO_EVENT_SESSION) as TippableSessionType[]
 
   for (const event of yearEvents) {
     for (const sessionType of tippableTypes) {
-      // Sprint sessions only exist on sprint weekends
       if ((sessionType === 'sprint_race' || sessionType === 'sprint_qualifying') && !event.isSprintWeekend) continue
 
       const eventSessionKey = TIPPABLE_TO_EVENT_SESSION[sessionType]
@@ -97,7 +76,7 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
 
       let results: DriverResult[] = []
 
-      const of1Key = sessionKeyIndex.get(`${event.id}_${sessionType}`)
+      const of1Key = findOpenF1Session(of1Sessions, sessionInfo.startTime.toDate())
       if (of1Key) {
         const sessionRes = await openf1.sessionResults(of1Key)
         results = processSessionResults(sessionRes, driverByNumber)
