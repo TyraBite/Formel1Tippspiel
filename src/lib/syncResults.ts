@@ -1,6 +1,5 @@
 import { Timestamp } from 'firebase/firestore'
 import { openf1 } from './openf1'
-import { getJolpicaSprintRaces } from './jolpica'
 import { processSessionResults, processPositions } from './resultProcessing'
 import { getEvents, getDrivers, getSessionResult, saveSessionResult, saveScore, getTipsForSession } from './firestore'
 import { calculateScore } from './scoring'
@@ -42,12 +41,11 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
   const result: SyncResultsResult = { year, resultsAdded: 0, resultsUpdated: 0, scoresCalculated: 0, skipped: 0 }
   const now = new Date()
 
-  const [events, drivers, of1Sessions, of1Meetings, jolpicaSprints] = await Promise.all([
+  const [events, drivers, of1Sessions, of1Meetings] = await Promise.all([
     getEvents(),
     getDrivers(year),
     openf1.sessions(year),
     openf1.meetings(year),
-    getJolpicaSprintRaces(year),
   ])
 
   const yearEvents = events.filter(e => e.id.endsWith(`_${year}`))
@@ -55,14 +53,7 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
   if (yearEvents.length === 0 || of1Sessions.length === 0) return result
 
   const driverByNumber = new Map<number, Driver>()
-  const driverByCode = new Map<string, Driver>()
-  for (const d of drivers) {
-    driverByNumber.set(d.number, d)
-    driverByCode.set(d.code, d)
-  }
-
-  const jolpicaByRound = new Map<number, typeof jolpicaSprints[0]>()
-  for (const s of jolpicaSprints) jolpicaByRound.set(s.round, s)
+  for (const d of drivers) driverByNumber.set(d.number, d)
 
   const meetingByKey = new Map<number, typeof of1Meetings[0]>()
   for (const m of of1Meetings) meetingByKey.set(m.meeting_key, m)
@@ -113,21 +104,6 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
         if (results.length === 0) {
           const positions = await openf1.positions(of1Key)
           results = processPositions(positions, driverByNumber)
-        }
-      }
-
-      if (results.length === 0 && sessionType === 'sprint_race') {
-        const jolpica = jolpicaByRound.get(event.round)
-        if (jolpica) {
-          results = jolpica.results
-            .map(r => {
-              const driver = driverByCode.get(r.code)
-              return driver
-                ? { position: r.position, driverId: driver.id, driverCode: driver.code, driverName: driver.name }
-                : null
-            })
-            .filter((r): r is DriverResult => r !== null)
-          if (results.length > 0) console.log(`[sync] Jolpica sprint fallback: ${event.id}`)
         }
       }
 
