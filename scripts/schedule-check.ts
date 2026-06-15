@@ -8,7 +8,7 @@ const db = getFirestore()
 
 async function check() {
   const now = new Date()
-  const windowStart = new Date(now.getTime() - 2 * 3_600_000)
+  const windowStart = new Date(now.getTime() - 12 * 3_600_000)
   const windowEnd = new Date(now.getTime() + 48 * 3_600_000)
 
   const snap = await db.collection('events').get()

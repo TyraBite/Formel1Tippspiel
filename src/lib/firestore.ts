@@ -76,6 +76,22 @@ export async function getEventSessionResults(eventId: string): Promise<SessionRe
   return snap.docs.map(d => d.data() as SessionResult)
 }
 
+export function subscribeToEventScores(eventId: string, cb: (scores: Score[]) => void): Unsubscribe {
+  return onSnapshot(
+    query(collection(db, 'scores'), where('eventId', '==', eventId)),
+    snap => cb(snap.docs.map(d => d.data() as Score)),
+    err => console.error('[Firestore] subscribeToEventScores error:', err)
+  )
+}
+
+export function subscribeToEventSessionResults(eventId: string, cb: (results: SessionResult[]) => void): Unsubscribe {
+  return onSnapshot(
+    query(collection(db, 'session_results'), where('eventId', '==', eventId)),
+    snap => cb(snap.docs.map(d => d.data() as SessionResult)),
+    err => console.error('[Firestore] subscribeToEventSessionResults error:', err)
+  )
+}
+
 export async function getSessionResult(
   eventId: string,
   sessionType: string

@@ -84,6 +84,9 @@ export function LeaderboardPage() {
         {sorted.length === 0 && (
           <p className="text-f1-muted text-sm">Noch keine Ergebnisse</p>
         )}
+        {scores.some(s => s.isProvisional) && (
+          <p className="text-f1-muted text-xs mt-3">* Enthält vorläufige Ergebnisse</p>
+        )}
       </div>
 
       {users.length === 2 && sorted.length === 2 && (() => {

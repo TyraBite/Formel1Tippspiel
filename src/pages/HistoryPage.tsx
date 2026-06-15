@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { subscribeToEvents, getScores, getUsers, getDrivers, getEventSessionResults, subscribeToEventTips } from '../lib/firestore'
+import { subscribeToEvents, subscribeToEventScores, subscribeToEventSessionResults, getUsers, getDrivers, subscribeToEventTips } from '../lib/firestore'
 import { useAuth } from '../contexts/AuthContext'
 import type { F1Event, Score, AppUser, Tip, TippableSessionType, Driver, SessionResult } from '../types'
 
@@ -24,12 +24,12 @@ export function HistoryPage() {
     const parts = eventId.split('_')
     const year = parseInt(parts[parts.length - 1] ?? String(new Date().getFullYear()))
     const unsubEvents = subscribeToEvents(es => setEvent(es.find(e => e.id === eventId) ?? null))
-    getScores(eventId).then(setScores)
+    const unsubScores = subscribeToEventScores(eventId, setScores)
+    const unsubResults = subscribeToEventSessionResults(eventId, setSessionResults)
+    const unsubTips = subscribeToEventTips(eventId, setTips)
     getUsers().then(setUsers)
     getDrivers(year).then(setDrivers)
-    getEventSessionResults(eventId).then(setSessionResults)
-    const unsubTips = subscribeToEventTips(eventId, setTips)
-    return () => { unsubEvents(); unsubTips() }
+    return () => { unsubEvents(); unsubScores(); unsubResults(); unsubTips() }
   }, [eventId])
 
   if (!event) return <div className="text-f1-muted">Laden...</div>
@@ -96,28 +96,36 @@ export function HistoryPage() {
           : sessionType === 'race' ? event.sessions.race
           : sessionType === 'sprint_race' ? event.sessions.sprint_race
           : event.sessions.fp3_or_sprint_q
-        const sessionStarted = sessionInfo ? sessionInfo.startTime.toDate() <= new Date() : false
+        const now = new Date()
+        const sessionStarted = sessionInfo ? sessionInfo.startTime.toDate() <= now : false
+        const sessionEnded = sessionInfo ? sessionInfo.endTime.toDate() <= now : false
+        const sessionResult = sessionResults.find(r => r.sessionType === sessionType)
 
         return (
           <div key={sessionType} className="card mb-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-bold uppercase tracking-wide text-sm">{SESSION_LABELS[sessionType]}</h2>
-              {sessionScores.length > 0 && (
-                <div className="flex gap-3">
-                  {users.map(u => {
-                    const s = sessionScores.find(sc => sc.userId === u.id)
-                    return s ? (
-                      <span key={u.id} className="text-xs text-f1-muted">
-                        {u.displayName} <span className="text-white font-bold">{s.points}</span>
-                      </span>
-                    ) : null
-                  })}
-                </div>
-              )}
+              <div className="flex items-center gap-3">
+                {sessionScores.length > 0 && users.map(u => {
+                  const s = sessionScores.find(sc => sc.userId === u.id)
+                  return s ? (
+                    <span key={u.id} className="text-xs text-f1-muted">
+                      {u.displayName} <span className="text-white font-bold">{s.points}</span>
+                    </span>
+                  ) : null
+                })}
+                {sessionResult && (
+                  <span className="text-f1-muted text-xs">
+                    Stand: {sessionResult.fetchedAt.toDate().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr
+                  </span>
+                )}
+              </div>
             </div>
 
             {!sessionStarted ? (
               <p className="text-f1-muted text-sm">Tipps werden nach Session-Start sichtbar</p>
+            ) : sessionEnded && sessionScores.length === 0 ? (
+              <p className="text-f1-muted text-sm">Ergebnisse ausstehend — Sync läuft stündlich</p>
             ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {users.map(user => {
