@@ -34,7 +34,7 @@ export interface OpenF1Position {
   driver_number: number
   date: string
   meeting_key: number
-  position: number
+  position: number | null  // null for unclassified DNF in live data
 }
 
 export interface OpenF1SessionResult {

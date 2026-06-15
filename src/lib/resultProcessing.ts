@@ -23,6 +23,7 @@ export function processPositions(
 ): DriverResult[] {
   const byDriver = new Map<number, { position: number; date: string }>()
   for (const p of positions) {
+    if (p.position === null) continue
     const existing = byDriver.get(p.driver_number)
     if (!existing || p.date > existing.date) {
       byDriver.set(p.driver_number, { position: p.position, date: p.date })
