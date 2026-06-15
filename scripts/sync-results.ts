@@ -103,7 +103,9 @@ async function syncResults(year: number) {
 
       const existingSnap = await db.collection('session_results').doc(`${event.id}_${sessionType}`).get()
       const existing = existingSnap.exists ? existingSnap.data() as SessionResult : null
-      if (existing?.status === 'official') continue
+      const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 3_600_000)
+      const officialAt = (existing?.officialAt as any)?.toDate?.()
+      if (existing?.status === 'official' && officialAt && officialAt < twoWeeksAgo) continue
 
       let results: DriverResult[] = []
 

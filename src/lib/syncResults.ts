@@ -99,7 +99,9 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
       if (endTime > now) continue
 
       const existing = await getSessionResult(event.id, sessionType)
-      if (existing?.status === 'official') continue
+      const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 3_600_000)
+      const officialAt = existing?.officialAt?.toDate()
+      if (existing?.status === 'official' && officialAt && officialAt < twoWeeksAgo) continue
 
       let results: DriverResult[] = []
 

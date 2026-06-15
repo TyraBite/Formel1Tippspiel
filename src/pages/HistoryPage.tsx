@@ -92,6 +92,12 @@ export function HistoryPage() {
         const sessionTips = tips.filter(t => t.sessionType === sessionType)
         const posMap = actualPos[sessionType] ?? {}
 
+        const sessionInfo = sessionType === 'qualifying' ? event.sessions.qualifying
+          : sessionType === 'race' ? event.sessions.race
+          : sessionType === 'sprint_race' ? event.sessions.sprint_race
+          : event.sessions.fp3_or_sprint_q
+        const sessionStarted = sessionInfo ? sessionInfo.startTime.toDate() <= new Date() : false
+
         return (
           <div key={sessionType} className="card mb-4">
             <div className="flex items-center justify-between mb-4">
@@ -110,6 +116,9 @@ export function HistoryPage() {
               )}
             </div>
 
+            {!sessionStarted ? (
+              <p className="text-f1-muted text-sm">Tipps werden nach Session-Start sichtbar</p>
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {users.map(user => {
                 const score = sessionScores.find(s => s.userId === user.id)
@@ -171,6 +180,7 @@ export function HistoryPage() {
                 )
               })}
             </div>
+            )}
           </div>
         )
       })}
