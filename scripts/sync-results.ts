@@ -1,7 +1,7 @@
 import { initializeApp, cert } from 'firebase-admin/app'
 import { getFirestore, Timestamp } from 'firebase-admin/firestore'
 import { openf1 } from '../src/lib/openf1'
-import { getJolpicaSprintRaces } from '../src/lib/jolpica'
+import { getJolpicaRaces, getJolpicaSprintRaces } from '../src/lib/jolpica'
 import { calculateScore } from '../src/lib/scoring'
 import { processPositions } from '../src/lib/resultProcessing'
 import type { F1Event, Driver, DriverResult, SessionResult, Score, Tip, TippableSessionType } from '../src/types'
@@ -38,9 +38,10 @@ async function syncResults(year: number) {
   const now = new Date()
   console.log(`\nSyncing results for ${year}...`)
 
-  const [of1Sessions, of1Meetings, jolpicaSprints] = await Promise.all([
+  const [of1Sessions, of1Meetings, jolpicaRaces, jolpicaSprints] = await Promise.all([
     openf1.sessions(year),
     openf1.meetings(year),
+    getJolpicaRaces(year),
     getJolpicaSprintRaces(year),
   ])
 
@@ -67,6 +68,9 @@ async function syncResults(year: number) {
     driverByNumber.set(driver.number, driver)
     driverByCode.set(driver.code, driver)
   }
+
+  const jolpicaRaceByRound = new Map<number, typeof jolpicaRaces[0]>()
+  for (const r of jolpicaRaces) jolpicaRaceByRound.set(r.round, r)
 
   const jolpicaByRound = new Map<number, typeof jolpicaSprints[0]>()
   for (const s of jolpicaSprints) jolpicaByRound.set(s.round, s)
@@ -120,14 +124,33 @@ async function syncResults(year: number) {
 
       let results: DriverResult[] = []
 
-      const of1Key = sessionKeyIndex.get(`${event.id}_${sessionType}`)
-      if (of1Key) {
-        const positions = await openf1.positions(of1Key)
-        console.log(`  OpenF1 session_key=${of1Key}: ${positions.length} Positionen, ${driverByNumber.size} Fahrer gemappt`)
-        results = processPositions(positions, driverByNumber)
-        console.log(`  processPositions: ${results.length} Ergebnisse`)
-      } else {
-        console.log(`  Kein OpenF1-Key für ${event.id}_${sessionType} (verfügbare Keys: ${[...sessionKeyIndex.keys()].filter(k => k.endsWith(`_${sessionType}`)).join(', ') || 'keine'})`)
+      // For races, use Jolpica first — it gives official classified results including post-race
+      // time penalties, unlike OpenF1 /position which only captures live track positions.
+      if (sessionType === 'race') {
+        const jolpica = jolpicaRaceByRound.get(eventData.round)
+        if (jolpica) {
+          results = jolpica.results
+            .map(r => {
+              const driver = driverByCode.get(r.code)
+              return driver
+                ? { position: r.position, driverId: driver.id, driverCode: driver.code, driverName: driver.name }
+                : null
+            })
+            .filter((r): r is DriverResult => r !== null)
+          if (results.length > 0) console.log(`  Jolpica Rennergebnis: ${event.id} (${results.length} Fahrer)`)
+        }
+      }
+
+      if (results.length === 0) {
+        const of1Key = sessionKeyIndex.get(`${event.id}_${sessionType}`)
+        if (of1Key) {
+          const positions = await openf1.positions(of1Key)
+          console.log(`  OpenF1 session_key=${of1Key}: ${positions.length} Positionen, ${driverByNumber.size} Fahrer gemappt`)
+          results = processPositions(positions, driverByNumber)
+          console.log(`  processPositions: ${results.length} Ergebnisse`)
+        } else {
+          console.log(`  Kein OpenF1-Key für ${event.id}_${sessionType} (verfügbare Keys: ${[...sessionKeyIndex.keys()].filter(k => k.endsWith(`_${sessionType}`)).join(', ') || 'keine'})`)
+        }
       }
 
       if (results.length === 0 && sessionType === 'sprint_race') {
@@ -141,7 +164,7 @@ async function syncResults(year: number) {
                 : null
             })
             .filter((r): r is DriverResult => r !== null)
-          if (results.length > 0) console.log(`  Jolpica fallback: ${event.id}_${sessionType}`)
+          if (results.length > 0) console.log(`  Jolpica Sprint-Fallback: ${event.id}_${sessionType}`)
         }
       }
 

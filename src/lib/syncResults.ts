@@ -1,6 +1,6 @@
 import { Timestamp } from 'firebase/firestore'
 import { openf1 } from './openf1'
-import { getJolpicaSprintRaces } from './jolpica'
+import { getJolpicaRaces, getJolpicaSprintRaces } from './jolpica'
 import { processPositions } from './resultProcessing'
 import { getEvents, getDrivers, getSessionResult, saveSessionResult, saveScore, getTipsForSession } from './firestore'
 import { calculateScore } from './scoring'
@@ -42,11 +42,12 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
   const result: SyncResultsResult = { year, resultsAdded: 0, resultsUpdated: 0, scoresCalculated: 0, skipped: 0 }
   const now = new Date()
 
-  const [events, drivers, of1Sessions, of1Meetings, jolpicaSprints] = await Promise.all([
+  const [events, drivers, of1Sessions, of1Meetings, jolpicaRaces, jolpicaSprints] = await Promise.all([
     getEvents(),
     getDrivers(year),
     openf1.sessions(year),
     openf1.meetings(year),
+    getJolpicaRaces(year),
     getJolpicaSprintRaces(year),
   ])
 
@@ -60,6 +61,9 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
     driverByNumber.set(d.number, d)
     driverByCode.set(d.code, d)
   }
+
+  const jolpicaRaceByRound = new Map<number, typeof jolpicaRaces[0]>()
+  for (const r of jolpicaRaces) jolpicaRaceByRound.set(r.round, r)
 
   const jolpicaByRound = new Map<number, typeof jolpicaSprints[0]>()
   for (const s of jolpicaSprints) jolpicaByRound.set(s.round, s)
@@ -106,10 +110,29 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
 
       let results: DriverResult[] = []
 
-      const of1Key = sessionKeyIndex.get(`${event.id}_${sessionType}`)
-      if (of1Key) {
-        const positions = await openf1.positions(of1Key)
-        results = processPositions(positions, driverByNumber)
+      // For races, use Jolpica first — it gives official classified results including post-race
+      // time penalties, unlike OpenF1 /position which only captures live track positions.
+      if (sessionType === 'race') {
+        const jolpica = jolpicaRaceByRound.get(event.round)
+        if (jolpica) {
+          results = jolpica.results
+            .map(r => {
+              const driver = driverByCode.get(r.code)
+              return driver
+                ? { position: r.position, driverId: driver.id, driverCode: driver.code, driverName: driver.name }
+                : null
+            })
+            .filter((r): r is DriverResult => r !== null)
+          if (results.length > 0) console.log(`[sync] Jolpica race results: ${event.id}`)
+        }
+      }
+
+      if (results.length === 0) {
+        const of1Key = sessionKeyIndex.get(`${event.id}_${sessionType}`)
+        if (of1Key) {
+          const positions = await openf1.positions(of1Key)
+          results = processPositions(positions, driverByNumber)
+        }
       }
 
       if (results.length === 0 && sessionType === 'sprint_race') {
@@ -123,7 +146,7 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
                 : null
             })
             .filter((r): r is DriverResult => r !== null)
-          if (results.length > 0) console.log(`[sync] Jolpica fallback: ${event.id}_${sessionType}`)
+          if (results.length > 0) console.log(`[sync] Jolpica sprint fallback: ${event.id}`)
         }
       }
 
