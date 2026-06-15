@@ -15,6 +15,7 @@ const RESULTS_SESSION_MAP: Partial<Record<string, TippableSessionType>> = {
   'Qualifying': 'qualifying',
   'Sprint': 'sprint_race',
   'Sprint Qualifying': 'sprint_qualifying',
+  'Sprint Shootout': 'sprint_qualifying',
 }
 
 const TIPPABLE_TO_EVENT_SESSION: Record<TippableSessionType, string> = {
@@ -84,6 +85,9 @@ async function syncResults(year: number) {
       sessionKeyIndex.set(`${slug}_${year}_${tippableType}`, s.session_key)
     }
   }
+
+  const unmapped = [...new Set(of1Sessions.map(s => s.session_type).filter(t => !(t in RESULTS_SESSION_MAP)))]
+  if (unmapped.length) console.log(`  Unbekannte Session-Typen von OpenF1: ${unmapped.join(', ')}`)
 
   let resultsAdded = 0, resultsUpdated = 0, scoresCalculated = 0, skipped = 0
 

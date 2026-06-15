@@ -19,6 +19,7 @@ const RESULTS_SESSION_MAP: Partial<Record<string, TippableSessionType>> = {
   'Qualifying': 'qualifying',
   'Sprint': 'sprint_race',
   'Sprint Qualifying': 'sprint_qualifying',
+  'Sprint Shootout': 'sprint_qualifying',
 }
 
 const TIPPABLE_TO_EVENT_SESSION: Record<TippableSessionType, keyof F1Event['sessions']> = {
