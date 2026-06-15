@@ -89,6 +89,10 @@ async function syncResults(year: number) {
   const unmapped = [...new Set(of1Sessions.map(s => s.session_type).filter(t => !(t in RESULTS_SESSION_MAP)))]
   if (unmapped.length) console.log(`  Unbekannte Session-Typen von OpenF1: ${unmapped.join(', ')}`)
 
+  const usersSnap = await db.collection('users').get()
+  const userIds = usersSnap.docs.map(d => d.id)
+  console.log(`  ${userIds.length} Spieler geladen`)
+
   let resultsAdded = 0, resultsUpdated = 0, scoresCalculated = 0, skipped = 0
 
   const tippableTypes = Object.keys(TIPPABLE_TO_EVENT_SESSION) as TippableSessionType[]
@@ -164,17 +168,17 @@ async function syncResults(year: number) {
       console.log(`  ${existing ? 'Updated' : 'Added'} result: ${sessionResult.id} (${sessionResult.status})`)
       if (existing) resultsUpdated++; else resultsAdded++
 
-      const tipsSnap = await db.collection('tips')
-        .where('eventId', '==', event.id)
-        .where('sessionType', '==', sessionType)
-        .get()
-
-      for (const tipDoc of tipsSnap.docs) {
+      for (const userId of userIds) {
+        const tipDoc = await db.collection('tips').doc(`${userId}_${event.id}_${sessionType}`).get()
+        if (!tipDoc.exists) {
+          console.log(`  Kein Tipp: ${userId}_${event.id}_${sessionType}`)
+          continue
+        }
         const tip = tipDoc.data() as Tip
         const { points, breakdown } = calculateScore(tip, sessionResult)
         const score: Score = {
-          id: `${tip.userId}_${event.id}_${sessionType}`,
-          userId: tip.userId,
+          id: `${userId}_${event.id}_${sessionType}`,
+          userId,
           eventId: event.id,
           sessionType,
           points,
