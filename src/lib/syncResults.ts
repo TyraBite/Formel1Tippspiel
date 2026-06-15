@@ -1,6 +1,5 @@
 import { Timestamp } from 'firebase/firestore'
-import { openf1 } from './openf1'
-import type { OpenF1Session } from './openf1'
+import { openf1, findOpenF1Session } from './openf1'
 import { processSessionResults, processPositions } from './resultProcessing'
 import { getEvents, getDrivers, getSessionResult, saveSessionResult, saveScore, getTipsForSession } from './firestore'
 import { calculateScore } from './scoring'
@@ -21,23 +20,6 @@ const TIPPABLE_TO_EVENT_SESSION: Record<TippableSessionType, keyof F1Event['sess
   sprint_qualifying: 'fp3_or_sprint_q',
 }
 
-// Match an OpenF1 session to a Firestore session slot by start time proximity.
-// Sprint and regular sessions share the same session_type name in OpenF1 ("Race" / "Qualifying"),
-// so slug-based matching cannot distinguish them. Time-based matching works because sprint and
-// main sessions are always on different days.
-function findOpenF1Session(sessions: OpenF1Session[], expectedStart: Date): number | undefined {
-  const MAX_DIFF_MS = 2 * 3_600_000
-  let best: number | undefined
-  let bestDiff = MAX_DIFF_MS
-  for (const s of sessions) {
-    const diff = Math.abs(new Date(s.date_start).getTime() - expectedStart.getTime())
-    if (diff < bestDiff) {
-      bestDiff = diff
-      best = s.session_key
-    }
-  }
-  return best
-}
 
 export async function syncResults(year: number): Promise<SyncResultsResult> {
   const result: SyncResultsResult = { year, resultsAdded: 0, resultsUpdated: 0, scoresCalculated: 0, skipped: 0 }

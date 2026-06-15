@@ -51,6 +51,22 @@ export interface OpenF1SessionResult {
   number_of_laps: number
 }
 
+// Sprint and regular sessions share the same session_type name in OpenF1 ("Race"/"Qualifying"),
+// so slug-based matching fails. Time-based matching works because they are always on different days.
+export function findOpenF1Session(sessions: OpenF1Session[], expectedStart: Date): number | undefined {
+  const MAX_DIFF_MS = 2 * 3_600_000
+  let best: number | undefined
+  let bestDiff = MAX_DIFF_MS
+  for (const s of sessions) {
+    const diff = Math.abs(new Date(s.date_start).getTime() - expectedStart.getTime())
+    if (diff < bestDiff) {
+      bestDiff = diff
+      best = s.session_key
+    }
+  }
+  return best
+}
+
 async function get<T>(path: string, emptyOn404 = false): Promise<T[]> {
   const res = await fetch(`${BASE}${path}`)
   if (!res.ok) {

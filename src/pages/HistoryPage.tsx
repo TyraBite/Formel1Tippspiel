@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { subscribeToEvents, subscribeToEventScores, subscribeToEventSessionResults, getUsers, getDrivers, subscribeToEventTips } from '../lib/firestore'
 import { useAuth } from '../contexts/AuthContext'
+import { useLivePositions } from '../lib/useLivePositions'
 import type { F1Event, Score, AppUser, Tip, TippableSessionType, Driver, SessionResult } from '../types'
 
 const SESSION_LABELS: Record<TippableSessionType, string> = {
@@ -31,6 +32,15 @@ export function HistoryPage() {
     getDrivers(year).then(setDrivers)
     return () => { unsubEvents(); unsubScores(); unsubResults(); unsubTips() }
   }, [eventId])
+
+  const liveQualifying   = useLivePositions(event, 'qualifying', drivers)
+  const liveRace         = useLivePositions(event, 'race', drivers)
+  const liveSprintQ      = useLivePositions(event, 'sprint_qualifying', drivers)
+  const liveSprintRace   = useLivePositions(event, 'sprint_race', drivers)
+  const liveBySession: Record<TippableSessionType, typeof liveQualifying> = {
+    qualifying: liveQualifying, race: liveRace,
+    sprint_qualifying: liveSprintQ, sprint_race: liveSprintRace,
+  }
 
   if (!event) return <div className="text-f1-muted">Laden...</div>
 
@@ -99,12 +109,22 @@ export function HistoryPage() {
         const now = new Date()
         const sessionStarted = sessionInfo ? sessionInfo.startTime.toDate() <= now : false
         const sessionEnded = sessionInfo ? sessionInfo.endTime.toDate() <= now : false
+        const sessionIsActive = sessionStarted && !sessionEnded
         const sessionResult = sessionResults.find(r => r.sessionType === sessionType)
+        const live = liveBySession[sessionType]
 
         return (
           <div key={sessionType} className="card mb-4">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold uppercase tracking-wide text-sm">{SESSION_LABELS[sessionType]}</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="font-bold uppercase tracking-wide text-sm">{SESSION_LABELS[sessionType]}</h2>
+                {sessionIsActive && (
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-f1-red uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-f1-red animate-pulse" />
+                    Live
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-3">
                 {sessionScores.length > 0 && users.map(u => {
                   const s = sessionScores.find(sc => sc.userId === u.id)
@@ -124,6 +144,23 @@ export function HistoryPage() {
 
             {!sessionStarted ? (
               <p className="text-f1-muted text-sm">Tipps werden nach Session-Start sichtbar</p>
+            ) : sessionIsActive ? (
+              <div>
+                <p className="text-f1-muted text-xs mb-2">aktualisiert alle 15s</p>
+                {live.length === 0 ? (
+                  <p className="text-f1-muted text-sm">Lade Live-Daten…</p>
+                ) : (
+                  <div className="space-y-0.5">
+                    {live.slice(0, 10).map(dr => (
+                      <div key={dr.driverId} className="flex items-center gap-2 py-1 px-1.5 text-sm">
+                        <span className="text-f1-muted font-mono text-xs w-4 shrink-0">{dr.position}</span>
+                        <span className="font-mono text-xs w-8 shrink-0 text-white">{dr.driverCode}</span>
+                        <span className="text-f1-muted text-xs">{dr.driverName}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : sessionEnded && sessionScores.length === 0 ? (
               <p className="text-f1-muted text-sm">Ergebnisse ausstehend — Sync läuft stündlich</p>
             ) : (
