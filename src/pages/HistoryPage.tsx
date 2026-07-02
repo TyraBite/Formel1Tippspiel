@@ -325,7 +325,7 @@ export function HistoryPage() {
                   <>
                     <p className="text-f1-muted text-sm">Ladefehler — OpenF1 nicht erreichbar</p>
                     <button
-                      onClick={() => window.location.reload()}
+                      onClick={() => data.retry()}
                       className="text-xs text-f1-muted underline mt-1 hover:text-white"
                     >
                       Neu laden
@@ -336,7 +336,7 @@ export function HistoryPage() {
                   <>
                     <p className="text-f1-muted text-sm">Session nicht in OpenF1 gefunden</p>
                     <button
-                      onClick={() => window.location.reload()}
+                      onClick={() => data.retry()}
                       className="text-xs text-f1-muted underline mt-1 hover:text-white"
                     >
                       Neu laden
