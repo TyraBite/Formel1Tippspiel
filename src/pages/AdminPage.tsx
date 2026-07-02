@@ -1,6 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Timestamp } from 'firebase/firestore'
 import { syncSeason, type SyncResult } from '../lib/sync'
 import { syncResults, type SyncResultsResult } from '../lib/syncResults'
+import { subscribeToEvents, getTipsForSession, saveTip, getUsers, getDrivers } from '../lib/firestore'
+import { TipForm } from '../components/TipForm'
+import type { F1Event, AppUser, Tip, TippableSessionType, Driver } from '../types'
+
+const SESSION_LABELS: Record<TippableSessionType, string> = {
+  qualifying: 'Qualifying',
+  race: 'Rennen',
+  sprint_qualifying: 'Sprint Qualifying',
+  sprint_race: 'Sprint Race',
+}
 
 export function AdminPage() {
   const [seasonStatus, setSeasonStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
@@ -10,6 +21,67 @@ export function AdminPage() {
   const [resultsResult, setResultsResult] = useState<SyncResultsResult | null>(null)
 
   const [errorMsg, setErrorMsg] = useState('')
+
+  const [adminEvents, setAdminEvents] = useState<F1Event[]>([])
+  const [adminUsers, setAdminUsers] = useState<AppUser[]>([])
+  const [selectedEventId, setSelectedEventId] = useState('')
+  const [adminSession, setAdminSession] = useState<TippableSessionType>('qualifying')
+  const [selectedUserId, setSelectedUserId] = useState('')
+  const [adminTip, setAdminTip] = useState<Tip | undefined>(undefined)
+  const [adminDrivers, setAdminDrivers] = useState<Driver[]>([])
+  const [adminSaveStatus, setAdminSaveStatus] = useState('')
+  const [adminSaving, setAdminSaving] = useState(false)
+
+  const selectedEvent = adminEvents.find(e => e.id === selectedEventId) ?? null
+  const adminSessions: TippableSessionType[] = selectedEvent?.isSprintWeekend
+    ? ['sprint_qualifying', 'sprint_race', 'qualifying', 'race']
+    : ['qualifying', 'race']
+
+  useEffect(() => {
+    const unsub = subscribeToEvents(es => setAdminEvents([...es].sort((a, b) => a.round - b.round)))
+    getUsers().then(setAdminUsers)
+    return unsub
+  }, [])
+
+  useEffect(() => {
+    if (!selectedEventId) { setAdminDrivers([]); return }
+    const parts = selectedEventId.split('_')
+    const year = parseInt(parts[parts.length - 1] ?? String(new Date().getFullYear()))
+    getDrivers(year).then(setAdminDrivers)
+    if (!adminSessions.includes(adminSession)) setAdminSession('qualifying')
+  }, [selectedEventId])
+
+  useEffect(() => {
+    if (!selectedEventId || !selectedUserId) { setAdminTip(undefined); return }
+    setAdminTip(undefined)
+    setAdminSaveStatus('')
+    getTipsForSession(selectedEventId, adminSession).then(tips => {
+      setAdminTip(tips.find(t => t.userId === selectedUserId))
+    })
+  }, [selectedEventId, adminSession, selectedUserId])
+
+  async function handleAdminSave(sessionType: TippableSessionType, predictions: Record<string, string>) {
+    if (!selectedEventId || !selectedUserId) return
+    setAdminSaving(true)
+    setAdminSaveStatus('')
+    try {
+      const tip: Omit<Tip, 'lockedAt'> = {
+        id: `${selectedUserId}_${selectedEventId}_${sessionType}`,
+        userId: selectedUserId,
+        eventId: selectedEventId,
+        sessionType,
+        predictions,
+        updatedAt: Timestamp.now(),
+      }
+      await saveTip(tip)
+      setAdminTip(tip as Tip)
+      setAdminSaveStatus('Gespeichert ✓')
+    } catch (err) {
+      setAdminSaveStatus(err instanceof Error ? `Fehler: ${err.message}` : 'Unbekannter Fehler')
+    } finally {
+      setAdminSaving(false)
+    }
+  }
 
   async function handleSeasonSync() {
     setSeasonStatus('loading')
@@ -42,7 +114,7 @@ export function AdminPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto py-8 space-y-8">
+    <div className="max-w-2xl mx-auto py-8 space-y-8">
       <div>
         <h1 className="text-2xl font-bold mb-2">Admin</h1>
         <p className="text-f1-muted text-sm">Verwaltung der Saison- und Ergebnisdaten</p>
@@ -105,6 +177,75 @@ export function AdminPage() {
           <p className="text-red-400 text-sm">{errorMsg}</p>
         </div>
       )}
+
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-f1-muted mb-3">Tipps verwalten</h2>
+        <div className="space-y-3">
+          <select
+            value={selectedEventId}
+            onChange={e => { setSelectedEventId(e.target.value); setAdminSaveStatus('') }}
+            className="w-full bg-f1-card border border-f1-border rounded px-3 py-2 text-sm text-white"
+          >
+            <option value="">— Event wählen —</option>
+            {adminEvents.map(e => (
+              <option key={e.id} value={e.id}>R{e.round} {e.name}</option>
+            ))}
+          </select>
+
+          {selectedEvent && (
+            <div className="flex gap-2 flex-wrap">
+              {adminSessions.map(s => (
+                <button
+                  key={s}
+                  onClick={() => { setAdminSession(s); setAdminSaveStatus('') }}
+                  className={`px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider border transition-colors ${
+                    adminSession === s
+                      ? 'bg-f1-red border-f1-red text-white'
+                      : 'border-f1-border text-f1-muted hover:border-white hover:text-white'
+                  }`}
+                >
+                  {SESSION_LABELS[s]}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {selectedEvent && (
+            <select
+              value={selectedUserId}
+              onChange={e => { setSelectedUserId(e.target.value); setAdminSaveStatus('') }}
+              className="w-full bg-f1-card border border-f1-border rounded px-3 py-2 text-sm text-white"
+            >
+              <option value="">— Spieler wählen —</option>
+              {adminUsers.map(u => (
+                <option key={u.id} value={u.id}>{u.displayName}</option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {selectedEvent && selectedUserId && adminDrivers.length > 0 && (
+          <div className="mt-4">
+            <TipForm
+              sessionType={adminSession}
+              drivers={adminDrivers}
+              existingTip={adminTip}
+              locked={false}
+              onSubmit={handleAdminSave}
+            />
+            {adminSaving && <p className="text-f1-muted text-sm mt-2">Speichern…</p>}
+            {adminSaveStatus && (
+              <p className={`text-sm mt-2 ${adminSaveStatus.startsWith('Fehler') ? 'text-red-400' : 'text-green-400'}`}>
+                {adminSaveStatus}
+              </p>
+            )}
+          </div>
+        )}
+
+        {selectedEvent && selectedUserId && adminDrivers.length === 0 && (
+          <p className="text-f1-muted text-sm mt-3">Lade Fahrerdaten…</p>
+        )}
+      </div>
     </div>
   )
 }

@@ -5,10 +5,12 @@ import type { F1Event, Driver, DriverResult } from '../types'
 
 export type PracticeSessionKey = 'fp1' | 'fp2' | 'fp3_or_sprint_q'
 
+export type PracticeStatus = 'pending' | 'loading' | 'loaded' | 'no-data' | 'fetch-error' | 'no-session'
+
 export interface PracticePositionsResult {
   positions: DriverResult[]
   isLive: boolean
-  status: 'pending' | 'loading' | 'loaded' | 'empty'
+  status: PracticeStatus
 }
 
 const POLL_MS = 15_000
@@ -49,17 +51,17 @@ export function usePracticePositions(
         if (!cancelled) {
           const processed = processPositions(data, driverByNumber)
           setPositions(processed)
-          setStatus(processed.length > 0 ? 'loaded' : ended ? 'empty' : 'loading')
+          setStatus(processed.length > 0 ? 'loaded' : ended ? 'no-data' : 'loading')
         }
       } catch { /* ignore transient errors */ }
     }
 
     async function init() {
       let sessions
-      try { sessions = await openf1.sessions(year) } catch { if (!cancelled) setStatus('empty'); return }
+      try { sessions = await openf1.sessions(year) } catch { if (!cancelled) setStatus('fetch-error'); return }
       if (cancelled) return
       const key = findOpenF1Session(sessions, startTime)
-      if (!key) { setStatus('empty'); return }
+      if (!key) { setStatus('no-session'); return }
       await poll(key)
       if (!ended && !cancelled) {
         setIsLive(true)

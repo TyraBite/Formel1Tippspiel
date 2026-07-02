@@ -133,7 +133,9 @@ export function HistoryPage() {
               )}
             </div>
             {data.status === 'loading' && <p className="text-f1-muted text-sm">Lade…</p>}
-            {data.status === 'empty' && <p className="text-f1-muted text-sm">Keine Daten verfügbar</p>}
+            {data.status === 'no-data' && <p className="text-f1-muted text-sm">Keine Positionsdaten verfügbar (OpenF1)</p>}
+            {data.status === 'fetch-error' && <p className="text-f1-muted text-sm">Ladefehler — OpenF1 nicht erreichbar</p>}
+            {data.status === 'no-session' && <p className="text-f1-muted text-sm">Session nicht in OpenF1 gefunden</p>}
             {data.status === 'loaded' && (
               <div className="space-y-0.5">
                 {data.positions.slice(0, 10).map(dr => (
@@ -196,87 +198,91 @@ export function HistoryPage() {
 
             {!sessionStarted ? (
               <p className="text-f1-muted text-sm">Tipps werden nach Session-Start sichtbar</p>
-            ) : sessionIsActive ? (
-              <div>
-                <p className="text-f1-muted text-xs mb-2">aktualisiert alle 15s</p>
-                {live.length === 0 ? (
-                  <p className="text-f1-muted text-sm">Lade Live-Daten…</p>
-                ) : (
-                  <div className="space-y-0.5">
-                    {live.slice(0, 10).map(dr => (
-                      <div key={dr.driverId} className="flex items-center gap-2 py-1 px-1.5 text-sm">
-                        <span className="text-f1-muted font-mono text-xs w-4 shrink-0">{dr.position}</span>
-                        <span className="font-mono text-xs w-8 shrink-0 text-white">{dr.driverCode}</span>
-                        <span className="text-f1-muted text-xs">{dr.driverName}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : sessionEnded && sessionScores.length === 0 ? (
-              <p className="text-f1-muted text-sm">Ergebnisse ausstehend — Sync läuft stündlich</p>
             ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {users.map(user => {
-                const score = sessionScores.find(s => s.userId === user.id)
-                const tip = sessionTips.find(t => t.userId === user.id)
-                return (
-                  <div key={user.id}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold text-sm">{user.displayName}</span>
-                      {score && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-f1-red font-black">{score.points} Pkt</span>
-                          {score.isProvisional && (
-                            <span className="badge bg-yellow-900 text-yellow-300">vorläufig</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    {tip ? (
-                      <div className="text-sm space-y-0.5">
-                        {score ? (
-                          score.breakdown.map(b => {
-                            const ap = b.predictedDriverId ? posMap[b.predictedDriverId] : undefined
-                            const showActual = b.points < 3 && ap !== undefined
-                            return (
-                              <div key={b.pos} className={`flex items-center gap-2 py-1 px-1.5 rounded ${
-                                b.points === 3 ? 'bg-f1-gold/10' : b.points === 1 ? 'bg-f1-green/10' : ''
-                              }`}>
-                                <span className="text-f1-muted font-mono text-xs w-4 shrink-0">{b.pos}</span>
-                                <span className={`flex-1 ${b.points > 0 ? 'text-white' : 'text-f1-muted'}`}>
-                                  {b.predictedDriverId ? driverName(b.predictedDriverId) : '–'}
-                                </span>
-                                {showActual && (
-                                  <span className={`text-xs font-mono shrink-0 ${
-                                    b.points === 1 ? 'text-f1-green/70' : 'text-red-400/70'
-                                  }`}>
-                                    P{ap}
-                                  </span>
-                                )}
-                                {b.points === 3 && <span className="text-f1-gold text-xs font-bold shrink-0">+3</span>}
-                                {b.points === 1 && <span className="text-f1-green text-xs font-bold shrink-0">+1</span>}
-                              </div>
-                            )
-                          })
-                        ) : (
-                          Object.entries(tip.predictions)
-                            .sort(([a], [b]) => Number(a) - Number(b))
-                            .map(([pos, driverId]) => (
-                              <div key={pos} className="flex items-center gap-2 py-1 px-1.5">
-                                <span className="text-f1-muted font-mono text-xs w-4 shrink-0">{pos}</span>
-                                <span className="text-f1-muted flex-1">{driverId ? driverName(driverId) : '–'}</span>
-                              </div>
-                            ))
-                        )}
-                      </div>
+              <>
+                {sessionIsActive && (
+                  <div className="mb-4">
+                    <p className="text-f1-muted text-xs mb-2">aktualisiert alle 15s</p>
+                    {live.length === 0 ? (
+                      <p className="text-f1-muted text-sm">Lade Live-Daten…</p>
                     ) : (
-                      <p className="text-f1-muted text-sm">Kein Tipp abgegeben</p>
+                      <div className="space-y-0.5">
+                        {live.slice(0, 10).map(dr => (
+                          <div key={dr.driverId} className="flex items-center gap-2 py-1 px-1.5 text-sm">
+                            <span className="text-f1-muted font-mono text-xs w-4 shrink-0">{dr.position}</span>
+                            <span className="font-mono text-xs w-8 shrink-0 text-white">{dr.driverCode}</span>
+                            <span className="text-f1-muted text-xs">{dr.driverName}</span>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
-                )
-              })}
-            </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {users.map(user => {
+                    const score = sessionScores.find(s => s.userId === user.id)
+                    const tip = sessionTips.find(t => t.userId === user.id)
+                    return (
+                      <div key={user.id}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-semibold text-sm">{user.displayName}</span>
+                          {score && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-f1-red font-black">{score.points} Pkt</span>
+                              {score.isProvisional && (
+                                <span className="badge bg-yellow-900 text-yellow-300">vorläufig</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {tip ? (
+                          <div className="text-sm space-y-0.5">
+                            {score ? (
+                              score.breakdown.map(b => {
+                                const ap = b.predictedDriverId ? posMap[b.predictedDriverId] : undefined
+                                const showActual = b.points < 3 && ap !== undefined
+                                return (
+                                  <div key={b.pos} className={`flex items-center gap-2 py-1 px-1.5 rounded ${
+                                    b.points === 3 ? 'bg-f1-gold/10' : b.points === 1 ? 'bg-f1-green/10' : ''
+                                  }`}>
+                                    <span className="text-f1-muted font-mono text-xs w-4 shrink-0">{b.pos}</span>
+                                    <span className={`flex-1 ${b.points > 0 ? 'text-white' : 'text-f1-muted'}`}>
+                                      {b.predictedDriverId ? driverName(b.predictedDriverId) : '–'}
+                                    </span>
+                                    {showActual && (
+                                      <span className={`text-xs font-mono shrink-0 ${
+                                        b.points === 1 ? 'text-f1-green/70' : 'text-red-400/70'
+                                      }`}>
+                                        P{ap}
+                                      </span>
+                                    )}
+                                    {b.points === 3 && <span className="text-f1-gold text-xs font-bold shrink-0">+3</span>}
+                                    {b.points === 1 && <span className="text-f1-green text-xs font-bold shrink-0">+1</span>}
+                                  </div>
+                                )
+                              })
+                            ) : (
+                              Object.entries(tip.predictions)
+                                .sort(([a], [b]) => Number(a) - Number(b))
+                                .map(([pos, driverId]) => (
+                                  <div key={pos} className="flex items-center gap-2 py-1 px-1.5">
+                                    <span className="text-f1-muted font-mono text-xs w-4 shrink-0">{pos}</span>
+                                    <span className="text-f1-muted flex-1">{driverId ? driverName(driverId) : '–'}</span>
+                                  </div>
+                                ))
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-f1-muted text-sm">Kein Tipp abgegeben</p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                {sessionEnded && sessionScores.length === 0 && (
+                  <p className="text-f1-muted text-sm mt-4">Ergebnisse ausstehend — Sync läuft stündlich</p>
+                )}
+              </>
             )}
           </div>
         )
