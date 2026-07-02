@@ -28,6 +28,7 @@ export function EventPage() {
   const [event, setEvent] = useState<F1Event | null>(null)
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [activeTab, setActiveTab] = useState<TippableSessionType>('qualifying')
+  const [userPickedTab, setUserPickedTab] = useState(false)
 
   useEffect(() => {
     const unsub = subscribeToEvents(events => {
@@ -38,7 +39,7 @@ export function EventPage() {
     return unsub
   }, [eventId])
 
-  const { getTip, isLocked, submitTip } = useTips(event)
+  const { getTip, isLocked, submitTip, tipsLoaded } = useTips(event)
 
   // Firestore subscriptions for tippable session results
   const qualifyingResult  = useSessionResult(eventId, 'qualifying')
@@ -52,6 +53,16 @@ export function EventPage() {
   const tippableSessions: TippableSessionType[] = event?.isSprintWeekend
     ? ['sprint_qualifying', 'sprint_race', 'qualifying', 'race']
     : ['qualifying', 'race']
+
+  useEffect(() => {
+    if (userPickedTab || !tipsLoaded) return
+    const untipped = tippableSessions.find(s => !getTip(s))
+    setActiveTab(untipped ?? tippableSessions[tippableSessions.length - 1] ?? 'qualifying')
+  }, [tipsLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    setUserPickedTab(false)
+  }, [event?.id])
 
   const activeSessionInfo = (() => {
     if (!event) return null
@@ -130,7 +141,7 @@ export function EventPage() {
         {tippableSessions.map(s => (
           <button
             key={s}
-            onClick={() => setActiveTab(s)}
+            onClick={() => { setActiveTab(s); setUserPickedTab(true) }}
             className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${
               activeTab === s
                 ? 'border-f1-red text-white'

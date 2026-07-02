@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Timestamp } from 'firebase/firestore'
 import { syncSeason, type SyncResult } from '../lib/sync'
-import { syncResults, type SyncResultsResult } from '../lib/syncResults'
+import { syncResults, calculateScoresForSession, type SyncResultsResult } from '../lib/syncResults'
 import { subscribeToEvents, getTipsForSession, saveTip, getUsers, getDrivers } from '../lib/firestore'
 import { TipForm } from '../components/TipForm'
 import type { F1Event, AppUser, Tip, TippableSessionType, Driver } from '../types'
@@ -74,8 +74,10 @@ export function AdminPage() {
         updatedAt: Timestamp.now(),
       }
       await saveTip(tip)
+      const year = parseInt(selectedEventId.split('_').pop() ?? '2026')
+      const scoreCount = await calculateScoresForSession(selectedEventId, sessionType, year)
       setAdminTip(tip as Tip)
-      setAdminSaveStatus('Gespeichert ✓')
+      setAdminSaveStatus(scoreCount > 0 ? `Gespeichert + ${scoreCount} Punkte berechnet ✓` : 'Gespeichert ✓ (kein Ergebnis vorhanden)')
     } catch (err) {
       setAdminSaveStatus(err instanceof Error ? `Fehler: ${err.message}` : 'Unbekannter Fehler')
     } finally {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { subscribeToEvents, subscribeToEventScores, subscribeToEventSessionResults, getUsers, getDrivers, subscribeToEventTips } from '../lib/firestore'
+import { syncResults } from '../lib/syncResults'
 import { useAuth } from '../contexts/AuthContext'
 import { useLivePositions } from '../lib/useLivePositions'
 import { usePracticePositions, type PracticeSessionKey } from '../lib/usePracticePositions'
@@ -20,6 +21,8 @@ export function HistoryPage() {
   const [tips, setTips] = useState<Tip[]>([])
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [sessionResults, setSessionResults] = useState<SessionResult[]>([])
+  const [syncing, setSyncing] = useState(false)
+  const [syncMessage, setSyncMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!eventId) return
@@ -71,6 +74,31 @@ export function HistoryPage() {
   const opponentTotal = opponent ? eventTotal(opponent.id) : 0
   const hasScores = scores.length > 0
 
+  function getNextSyncLabel(): string {
+    const now = new Date()
+    const day = now.getUTCDay() // 0=Sun,1=Mon,5=Fri,6=Sat
+    if (![0, 1, 5, 6].includes(day)) return '–'
+    const next = new Date(now)
+    next.setUTCMinutes(0, 0, 0)
+    next.setUTCHours(next.getUTCHours() + 1)
+    return next.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr'
+  }
+
+  async function handleSync() {
+    if (!event) return
+    setSyncing(true)
+    setSyncMessage(null)
+    try {
+      const year = parseInt(event.id.split('_').pop() ?? '2026')
+      const result = await syncResults(year)
+      setSyncMessage(`${result.scoresCalculated} Scores berechnet ✓`)
+    } catch {
+      setSyncMessage('Fehler beim Sync')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-black uppercase tracking-tight mb-1">{event.name}</h1>
@@ -102,54 +130,22 @@ export function HistoryPage() {
         </div>
       )}
 
-      {(() => {
-        const FP_LABELS: Record<PracticeSessionKey, string> = {
-          fp1: 'Freies Training 1',
-          fp2: 'Freies Training 2',
-          fp3_or_sprint_q: 'Freies Training 3',
-        }
-        const fpSessions: { key: PracticeSessionKey; data: typeof fp1Data }[] = [
-          { key: 'fp1', data: fp1Data },
-          ...(!event.isSprintWeekend
-            ? [
-                { key: 'fp2' as PracticeSessionKey, data: fp2Data },
-                { key: 'fp3_or_sprint_q' as PracticeSessionKey, data: fp3Data },
-              ]
-            : []),
-        ]
-        const visibleFP = fpSessions.filter(fp => fp.data.status !== 'pending')
-        if (visibleFP.length === 0) return null
-        return visibleFP.map(({ key, data }) => (
-          <div key={key} className="card mb-4">
-            <div className="flex items-center gap-3 mb-3">
-              <h2 className="font-bold uppercase tracking-wide text-sm text-f1-muted">
-                {FP_LABELS[key]}
-              </h2>
-              {data.isLive && (
-                <span className="flex items-center gap-1.5 text-xs font-bold text-f1-red uppercase tracking-wider">
-                  <span className="w-1.5 h-1.5 rounded-full bg-f1-red animate-pulse" />
-                  Live
-                </span>
-              )}
-            </div>
-            {data.status === 'loading' && <p className="text-f1-muted text-sm">Lade…</p>}
-            {data.status === 'no-data' && <p className="text-f1-muted text-sm">Keine Positionsdaten verfügbar (OpenF1)</p>}
-            {data.status === 'fetch-error' && <p className="text-f1-muted text-sm">Ladefehler — OpenF1 nicht erreichbar</p>}
-            {data.status === 'no-session' && <p className="text-f1-muted text-sm">Session nicht in OpenF1 gefunden</p>}
-            {data.status === 'loaded' && (
-              <div className="space-y-0.5">
-                {data.positions.slice(0, 10).map(dr => (
-                  <div key={dr.driverId} className="flex items-center gap-2 py-1 px-1.5 text-sm">
-                    <span className="text-f1-muted font-mono text-xs w-4 shrink-0">{dr.position}</span>
-                    <span className="font-mono text-xs w-8 shrink-0 text-f1-muted">{dr.driverCode}</span>
-                    <span className="text-f1-muted text-xs">{dr.driverName}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))
-      })()}
+      <div className="card mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium">Ergebnisse & Punkte</p>
+          <p className="text-xs text-f1-muted">
+            Automatischer Sync: stündlich Fr–Mo · Nächster: {getNextSyncLabel()}
+          </p>
+          {syncMessage && <p className="text-xs text-f1-green mt-1">{syncMessage}</p>}
+        </div>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="btn btn-secondary text-sm disabled:opacity-50"
+        >
+          {syncing ? 'Berechne…' : 'Jetzt berechnen'}
+        </button>
+      </div>
 
       {tippable.map(sessionType => {
         const sessionScores = scores.filter(s => s.sessionType === sessionType)
@@ -287,6 +283,82 @@ export function HistoryPage() {
           </div>
         )
       })}
+
+      <details className="mt-8">
+        <summary className="cursor-pointer select-none text-f1-muted text-sm uppercase tracking-wider py-2">
+          Freies Training
+        </summary>
+        <div className="mt-3">
+          {(() => {
+            const FP_LABELS: Record<PracticeSessionKey, string> = {
+              fp1: 'Freies Training 1',
+              fp2: 'Freies Training 2',
+              fp3_or_sprint_q: 'Freies Training 3',
+            }
+            const fpSessions: { key: PracticeSessionKey; data: typeof fp1Data }[] = [
+              { key: 'fp1', data: fp1Data },
+              ...(!event.isSprintWeekend
+                ? [
+                    { key: 'fp2' as PracticeSessionKey, data: fp2Data },
+                    { key: 'fp3_or_sprint_q' as PracticeSessionKey, data: fp3Data },
+                  ]
+                : []),
+            ]
+            const visibleFP = fpSessions.filter(fp => fp.data.status !== 'pending')
+            if (visibleFP.length === 0) return null
+            return visibleFP.map(({ key, data }) => (
+              <div key={key} className="card mb-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <h2 className="font-bold uppercase tracking-wide text-sm text-f1-muted">
+                    {FP_LABELS[key]}
+                  </h2>
+                  {data.isLive && (
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-f1-red uppercase tracking-wider">
+                      <span className="w-1.5 h-1.5 rounded-full bg-f1-red animate-pulse" />
+                      Live
+                    </span>
+                  )}
+                </div>
+                {data.status === 'loading' && <p className="text-f1-muted text-sm">Lade…</p>}
+                {data.status === 'no-data' && <p className="text-f1-muted text-sm">Keine Positionsdaten verfügbar (OpenF1)</p>}
+                {data.status === 'fetch-error' && (
+                  <>
+                    <p className="text-f1-muted text-sm">Ladefehler — OpenF1 nicht erreichbar</p>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="text-xs text-f1-muted underline mt-1 hover:text-white"
+                    >
+                      Neu laden
+                    </button>
+                  </>
+                )}
+                {data.status === 'no-session' && (
+                  <>
+                    <p className="text-f1-muted text-sm">Session nicht in OpenF1 gefunden</p>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="text-xs text-f1-muted underline mt-1 hover:text-white"
+                    >
+                      Neu laden
+                    </button>
+                  </>
+                )}
+                {data.status === 'loaded' && (
+                  <div className="space-y-0.5">
+                    {data.positions.slice(0, 10).map(dr => (
+                      <div key={dr.driverId} className="flex items-center gap-2 py-1 px-1.5 text-sm">
+                        <span className="text-f1-muted font-mono text-xs w-4 shrink-0">{dr.position}</span>
+                        <span className="font-mono text-xs w-8 shrink-0 text-f1-muted">{dr.driverCode}</span>
+                        <span className="text-f1-muted text-xs">{dr.driverName}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          })()}
+        </div>
+      </details>
     </div>
   )
 }

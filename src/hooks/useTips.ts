@@ -7,10 +7,15 @@ import { Timestamp } from 'firebase/firestore'
 export function useTips(event: F1Event | null) {
   const { user } = useAuth()
   const [tips, setTips] = useState<Tip[]>([])
+  const [tipsLoaded, setTipsLoaded] = useState(false)
 
   useEffect(() => {
     if (!event) return
-    return subscribeToEventTips(event.id, setTips)
+    setTipsLoaded(false)
+    return subscribeToEventTips(event.id, (newTips) => {
+      setTips(newTips)
+      setTipsLoaded(true)
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event?.id]) // intentional: resubscribe only when event identity changes
 
@@ -42,7 +47,7 @@ export function useTips(event: F1Event | null) {
     })
   }
 
-  return { getTip, getAllTips, isLocked, submitTip }
+  return { getTip, getAllTips, isLocked, submitTip, tipsLoaded }
 }
 
 function getSessionInfo(event: F1Event, sessionType: TippableSessionType) {

@@ -108,3 +108,34 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
 
   return result
 }
+
+export async function calculateScoresForSession(
+  eventId: string,
+  sessionType: TippableSessionType,
+  year: number
+): Promise<number> {
+  const sessionResult = await getSessionResult(eventId, sessionType)
+  if (!sessionResult) return 0
+
+  const now = new Date()
+  const tips = await getTipsForSession(eventId, sessionType)
+  let count = 0
+  for (const tip of tips) {
+    const { points, breakdown } = calculateScore(tip, sessionResult)
+    const endTime = sessionResult.fetchedAt.toDate()
+    const msSinceEnd = now.getTime() - endTime.getTime()
+    const isOfficial = msSinceEnd >= 3 * 3_600_000
+    await saveScore({
+      id: `${tip.userId}_${eventId}_${sessionType}`,
+      userId: tip.userId,
+      eventId,
+      sessionType,
+      points,
+      breakdown,
+      isProvisional: !isOfficial,
+      calculatedAt: Timestamp.now(),
+    })
+    count++
+  }
+  return count
+}

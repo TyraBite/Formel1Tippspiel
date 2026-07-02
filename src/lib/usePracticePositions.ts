@@ -53,7 +53,10 @@ export function usePracticePositions(
           setPositions(processed)
           setStatus(processed.length > 0 ? 'loaded' : ended ? 'no-data' : 'loading')
         }
-      } catch { /* ignore transient errors */ }
+      } catch {
+        if (!cancelled && ended) setStatus('fetch-error')
+        // transient errors during live session are ignored
+      }
     }
 
     async function init() {
