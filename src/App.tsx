@@ -9,6 +9,7 @@ import { LeaderboardPage } from './pages/LeaderboardPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { AdminPage } from './pages/AdminPage'
 import { LivePage } from './pages/LivePage'
+import { StatsPage } from './pages/StatsPage'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="live" element={<LivePage />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
           <Route path="history/:eventId" element={<HistoryPage />} />
+          <Route path="stats" element={<StatsPage />} />
           <Route path="admin" element={<AdminPage />} />
         </Route>
       </Routes>

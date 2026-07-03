@@ -35,6 +35,12 @@ export function Layout() {
               : 'text-f1-muted hover:text-white text-sm uppercase tracking-wide transition-colors'}>
             Rangliste
           </NavLink>
+          <NavLink to="/stats" className={({ isActive }) =>
+            isActive
+              ? 'text-f1-red font-bold text-sm uppercase tracking-wide'
+              : 'text-f1-muted hover:text-white text-sm uppercase tracking-wide transition-colors'}>
+            Statistiken
+          </NavLink>
         </div>
         <div className="flex items-center gap-3 md:gap-4 shrink-0">
           <ThemeToggle />
