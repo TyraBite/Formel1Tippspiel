@@ -51,13 +51,21 @@ function SortableRow({ slot, pos, drivers, disabledIds, locked, onChange, inputR
   })
 
   const driver = drivers.find(d => d.id === slot.driverId)
-  const teamColor = driver ? getTeamColor(driver.team) : 'transparent'
+  const teamColor = driver ? getTeamColor(driver.team) : null
 
   return (
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
-      className="flex items-center gap-2"
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition: transition
+          ? `${transition}, border-color 0.2s, background-color 0.2s`
+          : 'border-color 0.2s, background-color 0.2s',
+        opacity: isDragging ? 0.4 : 1,
+        borderLeft: `3px solid ${teamColor ?? 'transparent'}`,
+        backgroundColor: teamColor ? `${teamColor}18` : undefined,
+      }}
+      className="flex items-center gap-2 rounded px-1.5"
     >
       {locked ? (
         <div className="w-5" />
@@ -74,7 +82,6 @@ function SortableRow({ slot, pos, drivers, disabledIds, locked, onChange, inputR
         </button>
       )}
       <span className="text-f1-muted text-sm w-5 text-right font-mono shrink-0">{pos}</span>
-      <span className="w-0.5 h-5 rounded-full shrink-0 transition-colors duration-200" style={{ backgroundColor: teamColor }} />
       <div className="flex-1">
         <DriverCombobox
           ref={inputRef}
