@@ -76,9 +76,19 @@ async function get<T>(path: string, emptyOn404 = false): Promise<T[]> {
   return res.json()
 }
 
+// Cache sessions() per year so parallel callers share one HTTP request
+const _sessionsCache = new Map<number, Promise<OpenF1Session[]>>()
+
 export const openf1 = {
   meetings: (year: number) => get<OpenF1Meeting>(`/meetings?year=${year}`),
-  sessions: (year: number) => get<OpenF1Session>(`/sessions?year=${year}`),
+  sessions: (year: number): Promise<OpenF1Session[]> => {
+    if (!_sessionsCache.has(year)) {
+      const p = get<OpenF1Session>(`/sessions?year=${year}`)
+      p.catch(() => _sessionsCache.delete(year)) // clear on failure so retry re-fetches
+      _sessionsCache.set(year, p)
+    }
+    return _sessionsCache.get(year)!
+  },
   drivers: (sessionKey: number) => get<OpenF1Driver>(`/drivers?session_key=${sessionKey}`),
   positions: (sessionKey: number) => get<OpenF1Position>(`/position?session_key=${sessionKey}`, true),
   sessionResults: (sessionKey: number) => get<OpenF1SessionResult>(`/session_result?session_key=${sessionKey}`, true),
