@@ -89,7 +89,13 @@ export function Layout() {
 
         <div className="px-5 py-4 border-t border-f1-border space-y-3 shrink-0">
           <div className="flex items-center justify-between">
-            <span className="text-f1-muted text-sm truncate">{user?.displayName}</span>
+            {user?.isAdmin ? (
+              <NavLink to="/admin" onClick={close} className="text-f1-muted text-sm truncate hover:text-white transition-colors">
+                {user.displayName}
+              </NavLink>
+            ) : (
+              <span className="text-f1-muted text-sm truncate">{user?.displayName}</span>
+            )}
             <ThemeToggle />
           </div>
           <button
