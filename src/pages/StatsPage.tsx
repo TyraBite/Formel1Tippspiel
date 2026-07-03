@@ -151,24 +151,30 @@ export function StatsPage() {
 
   const driverProfiles = useMemo(() => {
     return sortedUsers.map(user => {
-      const statsMap: Record<string, { tipped: number; hit: number }> = {}
+      const statsMap: Record<string, { tipped: number; hit: number; exact: number }> = {}
       for (const s of scores.filter(s => s.userId === user.id)) {
         for (const b of s.breakdown) {
           if (!b.predictedDriverId) continue
-          const entry = statsMap[b.predictedDriverId] ?? { tipped: 0, hit: 0 }
+          const entry = statsMap[b.predictedDriverId] ?? { tipped: 0, hit: 0, exact: 0 }
           entry.tipped++
           if (b.points > 0) entry.hit++
+          if (b.points === 3) entry.exact++
           statsMap[b.predictedDriverId] = entry
         }
       }
       const sorted = Object.entries(statsMap)
-        .sort((a, b) => b[1].tipped - a[1].tipped)
         .map(([driverId, stat]) => ({
           driver: driverMap.get(driverId),
           driverId,
           ...stat,
           hitRate: stat.tipped > 0 ? Math.round((stat.hit / stat.tipped) * 100) : 0,
+          totalPoints: stat.exact * 3 + (stat.hit - stat.exact),
         }))
+        .sort((a, b) => {
+          if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints
+          if (b.hitRate !== a.hitRate) return b.hitRate - a.hitRate
+          return b.tipped - a.tipped
+        })
       return { user, drivers: sorted }
     })
   }, [scores, sortedUsers, driverMap])
@@ -216,7 +222,7 @@ export function StatsPage() {
                         label="Daneben (0 Pkt)"
                         count={miss}
                         total={total}
-                        color="bg-f1-border"
+                        color="bg-slate-500"
                       />
                       <p className="text-f1-muted text-xs mt-1">{total} Vorhersagen</p>
                     </div>
@@ -352,7 +358,7 @@ export function StatsPage() {
                     <p className="text-f1-muted text-xs">Keine Daten</p>
                   ) : (
                     <div className="space-y-1.5">
-                      {topDrivers.map(({ driver, driverId, tipped, hitRate }) => (
+                      {topDrivers.map(({ driver, driverId, tipped, exact, hitRate, totalPoints }) => (
                         <div key={driverId} className="flex items-center gap-2 text-sm">
                           <span
                             className="font-mono text-xs w-8 shrink-0"
@@ -360,12 +366,18 @@ export function StatsPage() {
                           >
                             {driver?.code ?? driverId.slice(0, 3).toUpperCase()}
                           </span>
-                          <span className="text-f1-muted text-xs flex-1 truncate">
+                          <span className="text-f1-muted text-xs flex-1 truncate min-w-0">
                             {driver?.name ?? driverId}
                           </span>
                           <span className="text-f1-muted text-xs shrink-0">{tipped}×</span>
-                          <span className={`text-xs font-bold shrink-0 w-10 text-right ${hitRate >= 50 ? 'text-f1-green' : hitRate >= 30 ? 'text-f1-gold' : 'text-f1-muted'}`}>
+                          <span className="text-f1-gold text-xs shrink-0 w-6 text-right font-mono">
+                            {exact > 0 ? `${exact}✓` : ''}
+                          </span>
+                          <span className={`text-xs shrink-0 w-9 text-right ${hitRate >= 50 ? 'text-f1-green' : hitRate >= 30 ? 'text-f1-gold' : 'text-f1-muted'}`}>
                             {hitRate}%
+                          </span>
+                          <span className="text-white font-bold text-xs shrink-0 w-8 text-right font-mono">
+                            {totalPoints}
                           </span>
                         </div>
                       ))}
