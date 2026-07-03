@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
-import { subscribeToEvents, getDrivers, subscribeToAllScores, getUsers } from '../lib/firestore'
+import { subscribeToEvents, getDrivers, subscribeToAllScores, getUsers, subscribeToEventTips } from '../lib/firestore'
 import { openf1, findOpenF1Session } from '../lib/openf1'
 import type { OpenF1Weather, OpenF1RaceControl, OpenF1Interval, OpenF1Stint, OpenF1Pit } from '../lib/openf1'
 import { TIPPABLE_TO_EVENT_SESSION, useLivePositions } from '../lib/useLivePositions'
 import { getTeamColor } from '../lib/teamColors'
 import { CountdownTimer } from '../components/CountdownTimer'
 import { useAuth } from '../contexts/AuthContext'
-import type { F1Event, Driver, TippableSessionType, SessionInfo, Score, AppUser } from '../types'
+import type { F1Event, Driver, TippableSessionType, SessionInfo, Score, AppUser, Tip } from '../types'
 
 const SESSION_LABELS: Record<TippableSessionType, string> = {
   qualifying: 'Qualifying', race: 'Rennen',
@@ -77,6 +77,7 @@ export function LivePage() {
   const [pits, setPits] = useState<OpenF1Pit[]>([])
   const [scores, setScores] = useState<Score[]>([])
   const [users, setUsers] = useState<AppUser[]>([])
+  const [tips, setTips] = useState<Tip[]>([])
   const [tick, setTick] = useState(0)
 
   useEffect(() => subscribeToEvents(setEvents), [])
@@ -115,6 +116,12 @@ export function LivePage() {
     if (!activeEvent) return
     const year = parseInt(activeEvent.id.split('_').pop() ?? '2026')
     getDrivers(year).then(setDrivers).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeEvent?.id])
+
+  useEffect(() => {
+    if (!activeEvent) { setTips([]); return }
+    return subscribeToEventTips(activeEvent.id, setTips)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeEvent?.id])
 
@@ -245,6 +252,11 @@ export function LivePage() {
   // Lap count from race control messages
   const lapCount = raceControl.reduce<number | null>((max, m) =>
     m.lap_number ? Math.max(max ?? 0, m.lap_number) : max, null)
+
+  // Tips for active session
+  const sessionTips = tips.filter(t => t.sessionType === activeSessionType)
+  const driverName = (id: string) => drivers.find(d => d.id === id)?.name ?? id
+  const driverTeamMap = useMemo(() => new Map(drivers.map(d => [d.id, d.team])), [drivers])
 
   // Tipping season totals
   const tipScores = useMemo(() => {
@@ -440,6 +452,41 @@ export function LivePage() {
           </div>
         )}
       </div>
+
+      {/* Tips for active session */}
+      {sessionTips.length > 0 && (
+        <div className="card mb-4">
+          <p className="text-f1-muted text-xs font-bold uppercase tracking-widest mb-3">Tipps</p>
+          <div className="grid grid-cols-2 gap-6">
+            {users.map(user => {
+              const tip = sessionTips.find(t => t.userId === user.id)
+              return (
+                <div key={user.id}>
+                  <p className="font-semibold text-sm mb-2">{user.displayName}</p>
+                  {tip ? (
+                    <div className="space-y-0.5">
+                      {Object.entries(tip.predictions)
+                        .sort(([a], [b]) => Number(a) - Number(b))
+                        .map(([pos, driverId]) => (
+                          <div key={pos} className="flex items-center gap-2 py-0.5 px-1">
+                            <span className="text-f1-muted font-mono text-xs w-4 shrink-0">{pos}</span>
+                            <span className="w-1.5 h-1.5 rounded-full shrink-0"
+                                  style={{ backgroundColor: getTeamColor(driverTeamMap.get(driverId) ?? '') }} />
+                            <span className="text-f1-muted text-xs flex-1 truncate">
+                              {driverName(driverId)}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <p className="text-f1-muted text-sm">Kein Tipp</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Tipping season totals */}
       {tipScores.length > 0 && (

@@ -65,6 +65,12 @@ export function subscribeToAllScores(cb: (scores: Score[]) => void): Unsubscribe
   )
 }
 
+export function subscribeToAllTips(cb: (tips: Tip[]) => void): Unsubscribe {
+  return onSnapshot(collection(db, 'tips'), snap =>
+    cb(snap.docs.map(d => d.data() as Tip))
+  )
+}
+
 // Users
 export async function getUsers(): Promise<AppUser[]> {
   const snap = await getDocs(collection(db, 'users'))
