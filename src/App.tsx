@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import { LoginPage } from './pages/LoginPage'
 import { Layout } from './components/Layout'
 import { HomePage } from './pages/HomePage'
@@ -26,6 +27,7 @@ function LoginRoute() {
 
 export default function App() {
   return (
+    <ThemeProvider>
     <BrowserRouter basename="/Formel1Tippspiel">
       <Routes>
         <Route path="/login" element={<LoginRoute />} />
@@ -38,5 +40,6 @@ export default function App() {
         </Route>
       </Routes>
     </BrowserRouter>
+    </ThemeProvider>
   )
 }

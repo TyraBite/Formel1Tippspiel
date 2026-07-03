@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { ThemeToggle } from './ThemeToggle'
 
 export function Layout() {
   const { user, logout } = useAuth()
@@ -29,7 +30,8 @@ export function Layout() {
             Rangliste
           </NavLink>
         </div>
-        <div className="flex items-center gap-2 md:gap-3 shrink-0">
+        <div className="flex items-center gap-3 md:gap-4 shrink-0">
+          <ThemeToggle />
           <span className="text-f1-muted text-sm truncate max-w-[80px] md:max-w-none">{user?.displayName}</span>
           <button
             onClick={() => logout().finally(() => navigate('/login'))}

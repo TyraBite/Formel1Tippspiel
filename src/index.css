@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -10,13 +11,54 @@
   --color-f1-green: #00D2BE;
 }
 
+/* Carbon theme — pure black, brighter accents */
+[data-theme="carbon"] {
+  --color-f1-red: #FF1801;
+  --color-f1-dark: #080808;
+  --color-f1-card: #111111;
+  --color-f1-border: #222222;
+  --color-f1-muted: #888888;
+  --color-f1-green: #00FF87;
+}
+
 @layer base {
-  body { @apply bg-f1-dark text-white; }
+  body {
+    @apply bg-f1-dark text-white;
+    font-family: 'Barlow', system-ui, sans-serif;
+  }
 }
 
 @layer components {
   .card { @apply bg-f1-card border border-f1-border rounded p-4; }
-  .btn-primary { @apply bg-f1-red hover:bg-red-700 text-white font-bold py-2 px-4 rounded uppercase tracking-wider text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed; }
-  .btn-secondary { @apply bg-f1-border hover:bg-gray-600 text-white font-bold py-2 px-4 rounded uppercase tracking-wider text-sm transition-colors; }
-  .badge { @apply inline-flex items-center text-xs px-2 py-0.5 rounded-sm font-bold uppercase tracking-wide; }
+  .btn-primary {
+    @apply bg-f1-red hover:bg-red-700 text-white font-bold py-2 px-4 rounded uppercase tracking-wider text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    font-family: 'Barlow Condensed', system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  .btn-secondary {
+    @apply bg-f1-border hover:bg-gray-600 text-white font-bold py-2 px-4 rounded uppercase tracking-wider text-sm transition-colors;
+    font-family: 'Barlow Condensed', system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  .badge {
+    @apply inline-flex items-center text-xs px-2 py-0.5 rounded-sm font-bold uppercase tracking-wide;
+    font-family: 'Barlow Condensed', system-ui, sans-serif;
+    letter-spacing: 0.08em;
+  }
+}
+
+/* Carbon: subtle grid texture on body */
+[data-theme="carbon"] body {
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 3px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 3px);
+}
+
+/* Carbon: carbon-weave texture on cards */
+[data-theme="carbon"] .card {
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 5px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 5px);
 }
