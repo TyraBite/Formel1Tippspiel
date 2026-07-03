@@ -134,6 +134,7 @@ export function TipForm({ sessionType, drivers, existingTip, locked, onSubmit }:
   }, [tipLoadKey])
 
   const selectedIds = new Set(slots.map(s => s.driverId).filter(Boolean))
+  const isComplete = slots.every(s => s.driverId !== '')
 
   function handleSlotChange(key: string, driverId: string) {
     const idx = slots.findIndex(s => s.key === key)
@@ -183,9 +184,14 @@ export function TipForm({ sessionType, drivers, existingTip, locked, onSubmit }:
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-sm text-f1-muted uppercase tracking-wider">
-          Tipp: {SESSION_LABELS[sessionType]}
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-sm text-f1-muted uppercase tracking-wider">
+            Tipp: {SESSION_LABELS[sessionType]}
+          </h3>
+          {!locked && isComplete && (
+            <span className="w-2 h-2 rounded-full bg-f1-green shrink-0" />
+          )}
+        </div>
         {locked && (
           <span className="badge bg-f1-border text-f1-muted">Gesperrt</span>
         )}

@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>f1-tipping-game</title>
+    <title>F1 Tippspiel</title>
     <script>
       (function() {
-        var t = localStorage.getItem('f1-theme');
-        if (t) document.documentElement.setAttribute('data-theme', t);
+        var t = localStorage.getItem('f1-theme') || 'carbon';
+        document.documentElement.setAttribute('data-theme', t);
       })();
     </script>
   </head>

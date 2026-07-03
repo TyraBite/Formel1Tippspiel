@@ -155,11 +155,15 @@ export function EventPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          {activeSessionInfo && !isLocked(activeTab) && (
-            <div className="mb-4">
-              <CountdownTimer target={activeSessionInfo.startTime} label="Tipp-Deadline" />
-            </div>
-          )}
+          {activeSessionInfo && !isLocked(activeTab) && (() => {
+            const msLeft = activeSessionInfo.startTime.toDate().getTime() - now.getTime()
+            const isUrgent = msLeft > 0 && msLeft < 3_600_000
+            return (
+              <div className={`mb-4 ${isUrgent ? 'rounded border border-red-500/40 bg-red-500/8 py-3 px-3' : ''}`}>
+                <CountdownTimer target={activeSessionInfo.startTime} label="Tipp-Deadline" />
+              </div>
+            )
+          })()}
           <TipForm
             sessionType={activeTab}
             drivers={drivers}

@@ -13,7 +13,7 @@ export function ThemeToggle() {
       <span className={`inline-block w-2 h-2 rounded-full transition-colors ${
         isCarbon ? 'bg-[#FF1801]' : 'bg-transparent border border-f1-muted'
       }`} />
-      {isCarbon ? 'Night' : 'Carbon'}
+      {isCarbon ? 'Nacht' : 'Carbon'}
     </button>
   )
 }

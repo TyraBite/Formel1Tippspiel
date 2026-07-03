@@ -106,7 +106,7 @@ export function LeaderboardPage() {
         const opponent = sorted.find(s => s.user.id !== user?.id) ?? sorted[1]
         return (
           <div className="card mb-8">
-            <h2 className="text-sm font-semibold text-f1-muted uppercase tracking-wider mb-4">Head to Head</h2>
+            <h2 className="text-sm font-semibold text-f1-muted uppercase tracking-wider mb-4">Direktvergleich</h2>
             <div className="grid grid-cols-3 text-center gap-4 mb-4">
               <div>
                 <p className="text-2xl font-bold">{me.totalPoints}</p>
@@ -125,7 +125,7 @@ export function LeaderboardPage() {
               </div>
               <div>
                 <p className="text-xl font-bold text-f1-muted">{me.sessionDraws}</p>
-                <p className="text-f1-muted text-xs">Draws</p>
+                <p className="text-f1-muted text-xs">Unentschieden</p>
               </div>
               <div>
                 <p className="text-xl font-bold text-f1-green">{opponent.sessionWins}</p>

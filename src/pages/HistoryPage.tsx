@@ -120,7 +120,7 @@ export function HistoryPage() {
                 {myTotal}
               </p>
               <p className="text-f1-muted text-xs uppercase tracking-wide mt-1">{me.displayName}</p>
-              {myTotal > opponentTotal && <p className="text-f1-red text-xs font-bold uppercase tracking-wide mt-1">Winner</p>}
+              {myTotal > opponentTotal && <p className="text-f1-red text-xs font-bold uppercase tracking-wide mt-1">Sieger</p>}
             </div>
             <div className="text-f1-border text-sm font-black uppercase">VS</div>
             <div className="flex-1 text-center">
@@ -128,7 +128,7 @@ export function HistoryPage() {
                 {opponentTotal}
               </p>
               <p className="text-f1-muted text-xs uppercase tracking-wide mt-1">{opponent.displayName}</p>
-              {opponentTotal > myTotal && <p className="text-f1-red text-xs font-bold uppercase tracking-wide mt-1">Winner</p>}
+              {opponentTotal > myTotal && <p className="text-f1-red text-xs font-bold uppercase tracking-wide mt-1">Sieger</p>}
             </div>
           </div>
           {myTotal === opponentTotal && (

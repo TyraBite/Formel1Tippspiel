@@ -283,7 +283,7 @@ export function StatsPage() {
           {/* #9 H2H Details */}
           {h2hRows.length > 0 && sortedUsers.length === 2 && (
             <div className="card mb-6">
-              <h2 className="text-sm font-semibold text-f1-muted uppercase tracking-wider mb-4">Head-to-Head · Sessions</h2>
+              <h2 className="text-sm font-semibold text-f1-muted uppercase tracking-wider mb-4">Direktvergleich · Sessions</h2>
               {/* Streak + Best */}
               <div className="flex flex-wrap gap-4 mb-4 pb-4 border-b border-f1-border">
                 {sortedUsers.map((u, i) => (
