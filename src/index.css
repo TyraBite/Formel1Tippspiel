@@ -14,9 +14,9 @@
 /* Carbon theme — pure black, brighter accents */
 [data-theme="carbon"] {
   --color-f1-red: #FF1801;
-  --color-f1-dark: #080808;
-  --color-f1-card: #111111;
-  --color-f1-border: #222222;
+  --color-f1-dark: #000000;
+  --color-f1-card: #0d0d0d;
+  --color-f1-border: #242424;
   --color-f1-muted: #888888;
   --color-f1-green: #00FF87;
 }
@@ -52,13 +52,14 @@
 /* Carbon: subtle grid texture on body */
 [data-theme="carbon"] body {
   background-image:
-    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 3px),
-    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 3px);
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.018) 2px, rgba(255,255,255,0.018) 3px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.018) 2px, rgba(255,255,255,0.018) 3px);
 }
 
-/* Carbon: carbon-weave texture on cards */
-[data-theme="carbon"] .card {
+/* Carbon: carbon-weave texture on cards and surfaces */
+[data-theme="carbon"] .card,
+[data-theme="carbon"] .carbon-surface {
   background-image:
-    repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 5px),
-    repeating-linear-gradient(-45deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 5px);
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.022) 0px, rgba(255,255,255,0.022) 1px, transparent 1px, transparent 5px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.022) 0px, rgba(255,255,255,0.022) 1px, transparent 1px, transparent 5px);
 }

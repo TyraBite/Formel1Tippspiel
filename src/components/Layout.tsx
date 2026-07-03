@@ -29,7 +29,7 @@ export function Layout() {
 
   return (
     <div className="min-h-screen">
-      <nav className="bg-f1-card border-b border-f1-border border-t-[3px] border-t-f1-red px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+      <nav className="carbon-surface bg-f1-card border-b border-f1-border border-t-[3px] border-t-f1-red px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-4 md:gap-7">
           <button
             onClick={() => setMenuOpen(true)}
@@ -61,7 +61,7 @@ export function Layout() {
 
       {/* Drawer */}
       <div
-        className="fixed top-0 left-0 h-full w-72 bg-f1-card border-r border-f1-border z-50 flex flex-col transition-transform duration-200 ease-out"
+        className="carbon-surface fixed top-0 left-0 h-full w-72 bg-f1-card border-r border-f1-border z-50 flex flex-col transition-transform duration-200 ease-out"
         style={{ transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)' }}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-f1-border shrink-0">
