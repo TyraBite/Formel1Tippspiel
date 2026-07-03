@@ -1,134 +1,157 @@
-# Handoff: HistoryPage Bug + Admin Tip Management
+# Handoff: F1 Tippspiel — Feature Sprint
 
-**Generated**: 2026-07-02
-**Branch**: main
-**Status**: Committed & pushed — deploy in progress via GitHub Actions
+**Generated**: 2026-07-03
+**Branch**: main (1 commit ahead of origin — push to deploy)
+**Status**: In Progress (active development, all features working)
 
 ## Goal
 
-Fix two bugs from the race weekend (tips invisible after session start, FP status messages uninformative) and add admin tip management to AdminPage so any player's tips can be added/edited retroactively via the same TipForm UI.
+Zweispieler-F1-Tippspiel (React + Vite + Firebase + Tailwind v4, deployed auf GitHub Pages). Laufende Feature-Erweiterungen und UX-Verbesserungen nach einer größeren Feature-Phase.
 
 ## Completed
 
-- [x] **Bug:** HistoryPage showed "Tipps werden nach Session-Start sichtbar" during active sessions — tips are now shown in read-only grid as soon as session starts (live positions still shown above tips while session is active)
-- [x] **Bug:** FP2/FP3 reference data showed silent empty state — `usePracticePositions` now has granular status: `no-data` / `fetch-error` / `no-session` with descriptive messages in HistoryPage
-- [x] **Feature:** AdminPage — new "Tipps verwalten" section: Event dropdown → Session tabs → Player dropdown → TipForm (locked=false) → save via `saveTip()`
-- [x] **Firestore rules:** Tips create/update now allows any authenticated user (was: only own tips, only if not locked) — needed for admin to write other player's tips
-- [x] Commit `3db65b5` on main, pushed — GitHub Actions `deploy.yml` triggered
+- [x] Team-Farbakzente in TipForm (border-left + bg-tint), DriverCombobox, HistoryPage
+- [x] Firestore Security Fix: isAdmin-Check in Tips-Rules
+- [x] DNF/DNS/DSQ-Anzeige in ReferenceTable + HistoryPage
+- [x] Freshness-Indicator auf LeaderboardPage
+- [x] Live-Seite (`/live`): Wetter, Race Control, Live-Positionen
+- [x] Statistiken-Seite (`/stats`): Trefferquoten, Saison-Trend (Recharts), H2H-Tabelle, Fahrer-Profil
+- [x] Mobile-first Burger-Nav: Slide-Drawer mit Nav + ThemeToggle + Logout; Desktop-Nav bleibt
+- [x] Carbon als Default-Theme; Anti-Flash-Script in index.html
+- [x] Deutsche UI-Texte: "Tipps" statt "Home", "Direktvergleich", "Unentschieden", "Sieger", "Nacht"
+- [x] UX: Tipp-Deadline-Urgency (<1h roter Rahmen), Vollständig-Indikator (grüner Punkt) in TipForm
+- [x] Secret Admin-Nav: Admin-User klickt auf Namen im Drawer → `/admin`
+- [x] Live-Seite erweitert: Compound-Badge (S/M/H/I/W), Gap-to-leader, Pit-Stopps-Feed, Tipp-Saisonstand
+- [x] Fahrer-Prognose: alle Fahrer, exakte Treffer (3Pkt) als Spalte, Sortierung nach Gesamtpunkten
+- [x] AccuracyBar "Daneben": `bg-f1-border` → `bg-slate-500` (war unsichtbar)
+- [x] Carbon-Theme stärker: `f1-dark` `#000000`, `f1-card` `#0d0d0d`, Textur auf Nav + Drawer
 
 ## Not Yet Done
 
-- [ ] Verify deployment at `https://tyrabite.github.io/Formel1Tippspiel/admin` — admin tip form should show and save correctly
-- [ ] Check if Firestore rules were deployed by `deploy.yml` (it runs `firebase deploy --only firestore:rules`) — if not, deploy manually: `firebase deploy --only firestore:rules`
+- [ ] Push Notifications (bewusst zurückgestellt — Nutzer entschied "vorerst nicht")
+- [ ] Deployment: letzter Commit noch nicht gepusht (`git push` ausstehend)
 
 ## Failed Approaches (Don't Repeat These)
 
-None for this session.
+**Recharts Tooltip TypeScript**: `formatter={(value: number, name: string)}` schlägt fehl weil Recharts `ValueType | undefined` übergibt. Fix: `String(value)` + `String(name)`, `labelFormatter` via `(_, payload) => payload?.[0]?.payload?.name ?? ''`.
+
+**resultProcessing.ts flatMap**: `map` + `filter` mit Type-Predicate erzeugt `true | undefined` statt `boolean | undefined`. Fix: `flatMap` mit expliziter `const result: DriverResult = {...}` Annotation.
+
+**Firestore lockedAt-Check**: `resource.data.lockedAt == null` wirft "Property lockedAt is undefined". Korrekt: `!('lockedAt' in resource.data)`.
+
+**OpenF1 Rate-Limiting**: Mehrere parallele Aufrufe von `openf1.sessions(year)` lösen Rate-Limit aus. Fix: Module-level `_sessionsCache: Map<number, Promise<OpenF1Session[]>>` — alle Aufrufe teilen sich eine Promise.
 
 ## Key Decisions
 
 | Decision | Rationale |
-|---|---|
-| Show tips during active session (not just after scores) | Tips are locked at session start — no reason to hide them. Users want to compare predictions while watching the race. |
-| Relax Firestore tip rules to `auth != null` | App has only 2 trusted users. Admin needs to write other player's tips. Simple auth check is correct for this use case. |
-| Reuse `saveTip()` for admin saves | Function already uses `merge: true` and sets `updatedAt` internally. No new Firestore code needed. |
-| `adminSessions` derived from `selectedEvent.isSprintWeekend` in render | Sprint weekends have extra session tabs; non-sprint only qualifying + race. |
+|----------|-----------|
+| `isAdmin` Feld in Firestore `users`-Doc | Muss manuell in Firebase Console gesetzt werden; kein Auto-Deploy |
+| Carbon als Default-Theme | Nutzer-Präferenz; `night-race` bleibt als Alternative |
+| "Live" bleibt englisch | Internationaler F1-Begriff, kein passendes deutsches Äquivalent |
+| Burger auf allen Screens (Mobile: nur Burger, Desktop: Burger + Horizontal-Nav) | Mobile-first; konsistenter Entry-Point |
+| Fahrer-Prognose zeigt alle Fahrer (kein slice) | Nutzer wollte vollständige Liste |
+| Pit stop duration = `stop_duration ?? pit_duration` | `stop_duration` (stationary ~2-3s) informativer als `pit_duration` (volle Pitlane ~21s) |
 
 ## Current State
 
-**Working**: All TypeScript clean, 19/19 unit tests pass, commit on origin/main.
+**Working**: Alle Features funktionieren. Build sauber. 19/19 Tests grün.
 
-**Deploy status**: GitHub Actions `deploy.yml` should be running. Check: `https://github.com/TyraBite/Formel1Tippspiel/actions`
+**Uncommitted Changes**: `README.md` modifiziert (nicht kritisch), `src/assets/` und `tailwind.config.js` ungetrackt (auto-generiert, nicht committen).
 
-**Uncommitted (ignore)**: `README.md` (pre-existing changes), `package-lock.json` (minor lockfile update from `npm install` to fix rolldown binding), `src/assets/`, `tailwind.config.js` (untracked, pre-existing).
+**Ausstehend**: `git push origin main` zum Deployen auf GitHub Pages (deploy.yml triggert bei Push auf main).
 
 ## Files to Know
 
 | File | Why It Matters |
-|---|---|
-| `src/pages/HistoryPage.tsx` | Bug fix: tips grid now renders inside `sessionStarted` branch instead of only after scores available |
-| `src/pages/AdminPage.tsx` | New "Tipps verwalten" section with full state management and TipForm integration |
-| `src/lib/usePracticePositions.ts` | New status type `PracticeStatus` — callers checking `status === 'empty'` must be updated |
-| `firestore.rules` | Tips rules relaxed — verify this deployed correctly |
+|------|----------------|
+| `src/components/Layout.tsx` | Burger-Drawer, Body-Scroll-Lock, carbon-surface Klasse auf Nav+Drawer |
+| `src/index.css` | Tailwind v4 CSS-first: `@theme {}` für Variablen, `[data-theme="carbon"]` Override, `.carbon-surface` Klasse |
+| `src/lib/openf1.ts` | Alle OpenF1-Interfaces + `openf1.*` Methoden; `_sessionsCache` für Rate-Limit |
+| `src/pages/LivePage.tsx` | Live-Session-Erkennung, Polling-Effekte (15s/30s/60s), Compound/Gap/Pit-Daten |
+| `src/pages/StatsPage.tsx` | Recharts LineChart, driverProfiles useMemo, AccuracyBar Komponente |
+| `src/lib/resultProcessing.ts` | `processSessionResults()` — flatMap statt map+filter (TypeScript-Constraint) |
+| `firestore.rules` | isAdmin-Check für Tip-Updates; lockedAt-Prüfung via `!('lockedAt' in resource.data)` |
+| `src/contexts/ThemeContext.tsx` | Default `'carbon'`, localStorage überschreibt |
+| `src/lib/teamColors.ts` | `getTeamColor(team: string): string` — alle 10 F1-Teams 2026 |
 
 ## Code Context
 
-**New `PracticeStatus` type** (callers need to handle new values):
-```typescript
-export type PracticeStatus = 'pending' | 'loading' | 'loaded' | 'no-data' | 'fetch-error' | 'no-session'
-// was: 'pending' | 'loading' | 'loaded' | 'empty'
-// EventPage only checks 'loaded' and 'loading' — no change needed there
-// HistoryPage updated to handle all new statuses
+**Theme-System** (Tailwind v4, CSS-first):
+```css
+/* src/index.css */
+@theme {
+  --color-f1-red: #E8002D;
+  --color-f1-dark: #15151E;
+  --color-f1-card: #1E1E2E;
+  /* ... */
+}
+[data-theme="carbon"] {
+  --color-f1-red: #FF1801;
+  --color-f1-dark: #000000;
+  --color-f1-card: #0d0d0d;
+  --color-f1-border: #242424;
+}
+/* Tailwind-Klassen: bg-f1-dark, text-f1-muted, border-f1-border etc. */
+/* .carbon-surface: Weave-Textur auf Nav-Bar und Burger-Drawer */
 ```
 
-**Admin save function** (`AdminPage.tsx`):
+**OpenF1-Client** (neu: intervals, stints, pits):
 ```typescript
-async function handleAdminSave(sessionType: TippableSessionType, predictions: Record<string, string>) {
-  const tip: Omit<Tip, 'lockedAt'> = {
-    id: `${selectedUserId}_${selectedEventId}_${sessionType}`,
-    userId: selectedUserId,
-    eventId: selectedEventId,
-    sessionType,
-    predictions,
-    updatedAt: Timestamp.now(), // overwritten by saveTip() anyway
-  }
-  await saveTip(tip) // src/lib/firestore.ts:41
-  setAdminTip(tip as Tip)
-  setAdminSaveStatus('Gespeichert ✓')
+export const openf1 = {
+  weather: (sessionKey: number) => get<OpenF1Weather>(`/weather?session_key=${sessionKey}`, true),
+  raceControl: (sessionKey: number) => get<OpenF1RaceControl>(`/race_control?session_key=${sessionKey}`, true),
+  intervals: (sessionKey: number) => get<OpenF1Interval>(`/intervals?session_key=${sessionKey}`, true),
+  stints: (sessionKey: number) => get<OpenF1Stint>(`/stints?session_key=${sessionKey}`, true),
+  pits: (sessionKey: number) => get<OpenF1Pit>(`/pit?session_key=${sessionKey}`, true),
+}
+// OpenF1Interval: { driver_number, date, gap_to_leader: number|string|null, interval: number|string|null }
+// OpenF1Stint:    { driver_number, stint_number, compound, lap_start, lap_end: number|null }
+// OpenF1Pit:      { driver_number, lap_number, pit_duration: number|null, stop_duration: number|null }
+```
+
+**Firestore isAdmin** — muss manuell in Firebase Console gesetzt werden:
+```
+Firestore → users/{uid} → isAdmin: true
+```
+Ist NICHT im Deploy-Script enthalten. Kein Auto-Deploy.
+
+**TippableSessionType → EventSessionKey Mapping**:
+```typescript
+// src/lib/useLivePositions.ts
+export const TIPPABLE_TO_EVENT_SESSION: Record<TippableSessionType, keyof F1Event['sessions']> = {
+  qualifying: 'qualifying',
+  race: 'race',
+  sprint_race: 'sprint_race',
+  sprint_qualifying: 'fp3_or_sprint_q',
 }
 ```
 
-**Firestore rules** (current state):
-```firestore
-match /tips/{tipId} {
-  allow read: if request.auth != null;
-  allow create: if request.auth != null;   // was: uid == userId && !lockedAt
-  allow update: if request.auth != null;   // was: uid == userId && !lockedAt
-}
-```
-
-**HistoryPage tips visibility logic** (simplified):
-```
-!sessionStarted → "Tipps werden nach Session-Start sichtbar"
-sessionStarted → <>
-  {sessionIsActive && <live positions div>}
-  <grid of both players' tips (with score breakdown if available)>
-  {sessionEnded && noScores && <"Ergebnisse ausstehend">}
-</>
-```
-
-**Admin state loading chain** (`AdminPage.tsx`):
-```
-mount → subscribeToEvents() + getUsers()
-selectedEventId changes → getDrivers(year) + reset adminSession if needed
-selectedEventId + adminSession + selectedUserId change → getTipsForSession() → find by userId → setAdminTip()
+**Driver.number** (für OpenF1-Lookup in LivePage):
+```typescript
+// src/types/index.ts
+interface Driver { id: string; code: string; name: string; team: string; number: number }
+// Lookup: drivers.find(d => d.id === dr.driverId)?.number → driver_number für OpenF1
 ```
 
 ## Resume Instructions
 
-1. Check deploy: `https://github.com/TyraBite/Formel1Tippspiel/actions` — wait for green
-2. Open `https://tyrabite.github.io/Formel1Tippspiel/admin`
-3. Scroll to "Tipps verwalten" — select an event, session, player
-4. Fill TipForm → click Speichern → expect "Gespeichert ✓"
-   - If Firestore permission error → rules not deployed yet: `firebase deploy --only firestore:rules`
-5. Log in as the other player → check EventPage for that event — tip should appear in locked (read-only) view
-6. Navigate to HistoryPage for a past event → verify both players' tips visible without needing scores
+1. `npm run build` — sollte clean durchlaufen (keine TypeScript-Fehler)
+2. `npm test` — 19/19 Tests sollten grün sein
+3. `git push origin main` — triggert GitHub Actions deploy.yml → GitHub Pages
+
+Bei neuen Features immer `npm run build` + `npm test` vor Commit.
 
 ## Setup Required
 
-Local dev:
-```bash
-npm run emulators   # Terminal 1 — Firebase Emulator (Auth :9099, Firestore :8080)
-npm run seed        # Terminal 2 — seed test data after emulator is ready
-npm run dev         # Terminal 3 — dev server at http://localhost:5173/Formel1Tippspiel/
-```
-
-Login: `spieler1` / `test1234` or `spieler2` / `test1234`
-
-Admin page: `http://localhost:5173/Formel1Tippspiel/admin` (no nav link — direct URL only)
+- `isAdmin: true` in Firestore `users/{uid}` manuell setzen für Admin-Nutzer
+- GitHub Secrets für deploy.yml: `VITE_FIREBASE_*` + `FIREBASE_SERVICE_ACCOUNT_KEY`
+- Lokale Entwicklung: `VITE_USE_EMULATOR=true` in `.env.local`, dann `npm run emulators` + `npm run seed`
 
 ## Warnings
 
-- `adminSessions` (derived from `selectedEvent?.isSprintWeekend`) is used inside `useEffect` for `selectedEventId` — ESLint exhaustive-deps might warn. The intentional behavior is to reset session type only when the event changes, not when `adminSessions` itself re-derives. Can suppress with `// eslint-disable-next-line` if needed.
-- The `package-lock.json` has a minor change from running `npm install` to fix a missing `@rolldown/binding-linux-x64-gnu` native binding (vitest dependency). Fine to commit or ignore.
-- `lockedAt` field on tips: never set in production (locking is purely time-based client-side). Firestore rules no longer check for it. The field still exists in the type definition for potential future use.
+- **Tailwind v4**: Kein `tailwind.config.ts`. Alle Custom-Farben in `src/index.css` via `@theme {}`. Ungetrackte `tailwind.config.js` im Repo-Root ignorieren (auto-generiert, nicht relevant).
+- **`lockedAt` in Firestore Rules**: Nie `resource.data.lockedAt == null` — wirft Fehler. Immer `!('lockedAt' in resource.data)`.
+- **OpenF1 Sprint vs Race**: Beide heißen `session_type: "Race"` in OpenF1 → slug-Matching schlägt fehl. `findOpenF1Session()` nutzt Zeit-basiertes Matching (±2h).
+- **`src/assets/` und `tailwind.config.js`**: Ungetrackt, nicht committen.
+- **Carbon-Textur auf Nav/Drawer**: Via `.carbon-surface` Klasse in `src/index.css`. Wenn Nav oder Drawer neu erstellt werden, `carbon-surface` Klasse nicht vergessen.
+- **Git-Identität für dieses Repo**: `TyraBite / mcnt94@googlemail.com`. Kein `Co-Authored-By` in Commits.
