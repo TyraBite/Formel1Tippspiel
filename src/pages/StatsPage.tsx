@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, CartesianGrid,
 } from 'recharts'
 import { subscribeToAllScores, subscribeToEvents, getUsers, getDrivers } from '../lib/firestore'
+import { getTeamColor } from '../lib/teamColors'
 import { useAuth } from '../contexts/AuthContext'
 import type { Score, AppUser, F1Event, Driver, TippableSessionType } from '../types'
 
@@ -162,7 +163,6 @@ export function StatsPage() {
       }
       const sorted = Object.entries(statsMap)
         .sort((a, b) => b[1].tipped - a[1].tipped)
-        .slice(0, 5)
         .map(([driverId, stat]) => ({
           driver: driverMap.get(driverId),
           driverId,
@@ -354,7 +354,10 @@ export function StatsPage() {
                     <div className="space-y-1.5">
                       {topDrivers.map(({ driver, driverId, tipped, hitRate }) => (
                         <div key={driverId} className="flex items-center gap-2 text-sm">
-                          <span className="text-f1-red font-mono text-xs w-8 shrink-0">
+                          <span
+                            className="font-mono text-xs w-8 shrink-0"
+                            style={{ color: driver ? getTeamColor(driver.team) : undefined }}
+                          >
                             {driver?.code ?? driverId.slice(0, 3).toUpperCase()}
                           </span>
                           <span className="text-f1-muted text-xs flex-1 truncate">
