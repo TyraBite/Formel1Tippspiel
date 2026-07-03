@@ -58,9 +58,14 @@ export function HistoryPage() {
 
   // driverId → actual position per session
   const actualPos: Record<string, Record<string, number>> = {}
+  const dnfMap: Record<string, Record<string, string | null>> = {}
   for (const r of sessionResults) {
     actualPos[r.sessionType] = {}
-    for (const dr of r.results) actualPos[r.sessionType][dr.driverId] = dr.position
+    dnfMap[r.sessionType] = {}
+    for (const dr of r.results) {
+      actualPos[r.sessionType][dr.driverId] = dr.position
+      dnfMap[r.sessionType][dr.driverId] = dr.dsq ? 'DSQ' : dr.dnf ? 'DNF' : dr.dns ? 'DNS' : null
+    }
   }
 
   const tippable: TippableSessionType[] = event.isSprintWeekend
@@ -249,6 +254,9 @@ export function HistoryPage() {
                                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: getTeamColor(driverTeamMap.get(b.predictedDriverId) ?? '') }} />
                                       )}
                                       {b.predictedDriverId ? driverName(b.predictedDriverId) : '–'}
+                                      {b.predictedDriverId && (dnfMap[sessionType] ?? {})[b.predictedDriverId] && (
+                                        <span className="text-xs font-mono text-f1-muted shrink-0">{(dnfMap[sessionType] ?? {})[b.predictedDriverId]}</span>
+                                      )}
                                     </span>
                                     {showActual && (
                                       <span className={`text-xs font-mono shrink-0 ${

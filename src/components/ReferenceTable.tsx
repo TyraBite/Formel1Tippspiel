@@ -31,13 +31,19 @@ export function ReferenceTable({ results, label, isProvisional, isLoading }: Pro
       <h3 className="text-sm font-semibold text-f1-muted uppercase tracking-wider mb-3">{label}</h3>
       <table className="w-full text-sm">
         <tbody>
-          {top15.map(r => (
-            <tr key={r.position} className="border-b border-f1-border last:border-0">
-              <td className="py-1.5 w-8 text-f1-muted font-mono">{r.position}</td>
-              <td className="py-1.5 font-medium w-12 text-f1-red">{r.driverCode}</td>
-              <td className="py-1.5 text-white">{r.driverName}</td>
-            </tr>
-          ))}
+          {top15.map(r => {
+            const status = r.dsq ? 'DSQ' : r.dnf ? 'DNF' : r.dns ? 'DNS' : null
+            return (
+              <tr key={r.position} className="border-b border-f1-border last:border-0">
+                <td className="py-1.5 w-8 text-f1-muted font-mono">{r.position}</td>
+                <td className="py-1.5 font-medium w-12 text-f1-red">{r.driverCode}</td>
+                <td className="py-1.5 text-white">
+                  <span className={status ? 'line-through text-f1-muted' : ''}>{r.driverName}</span>
+                  {status && <span className="ml-1.5 text-xs font-mono text-f1-muted">{status}</span>}
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
       {isProvisional && (

@@ -50,6 +50,9 @@ export interface DriverResult {
   driverId: string    // matches Driver.id
   driverCode: string
   driverName: string
+  dnf?: boolean
+  dns?: boolean
+  dsq?: boolean
 }
 
 export interface SessionResult {
@@ -94,4 +97,5 @@ export interface AppUser {
   id: string
   email: string
   displayName: string
+  isAdmin?: boolean
 }

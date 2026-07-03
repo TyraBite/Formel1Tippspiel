@@ -7,13 +7,20 @@ export function processSessionResults(
 ): DriverResult[] {
   return results
     .filter(r => r.position !== null)
-    .map(r => {
+    .flatMap(r => {
       const driver = driverByNumber.get(r.driver_number)
-      return driver
-        ? { position: r.position as number, driverId: driver.id, driverCode: driver.code, driverName: driver.name }
-        : null
+      if (!driver) return []
+      const result: DriverResult = {
+        position: r.position as number,
+        driverId: driver.id,
+        driverCode: driver.code,
+        driverName: driver.name,
+        dnf: r.dnf || undefined,
+        dns: r.dns || undefined,
+        dsq: r.dsq || undefined,
+      }
+      return [result]
     })
-    .filter((r): r is DriverResult => r !== null)
     .sort((a, b) => a.position - b.position)
 }
 

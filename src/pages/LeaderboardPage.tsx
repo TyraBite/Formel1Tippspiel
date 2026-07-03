@@ -69,7 +69,19 @@ export function LeaderboardPage() {
       <h1 className="text-2xl font-bold mb-6">Rangliste</h1>
 
       <div className="card mb-8">
-        <h2 className="text-sm font-semibold text-f1-muted uppercase tracking-wider mb-4">Gesamtpunkte</h2>
+        <div className="flex items-baseline justify-between mb-4">
+          <h2 className="text-sm font-semibold text-f1-muted uppercase tracking-wider">Gesamtpunkte</h2>
+          {(() => {
+            const latestCalc = scores.reduce<Date | null>((max, s) => {
+              const d = s.calculatedAt.toDate()
+              return !max || d > max ? d : max
+            }, null)
+            return latestCalc ? (
+              <span className="text-f1-muted text-xs">
+                Stand: {latestCalc.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} Uhr
+              </span>
+            ) : null
+          })()}</div>
         {sorted.map((s, i) => (
           <div key={s.user.id} className={`flex items-center justify-between py-3 ${
             i < sorted.length - 1 ? 'border-b border-f1-border' : ''
