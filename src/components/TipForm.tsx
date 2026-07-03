@@ -9,6 +9,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { DriverCombobox } from './DriverCombobox'
+import { getTeamColor } from '../lib/teamColors'
 import type { Driver, Tip, TippableSessionType } from '../types'
 
 const SESSION_LABELS: Record<TippableSessionType, string> = {
@@ -49,6 +50,9 @@ function SortableRow({ slot, pos, drivers, disabledIds, locked, onChange, inputR
     disabled: locked,
   })
 
+  const driver = drivers.find(d => d.id === slot.driverId)
+  const teamColor = driver ? getTeamColor(driver.team) : 'transparent'
+
   return (
     <div
       ref={setNodeRef}
@@ -70,6 +74,7 @@ function SortableRow({ slot, pos, drivers, disabledIds, locked, onChange, inputR
         </button>
       )}
       <span className="text-f1-muted text-sm w-5 text-right font-mono shrink-0">{pos}</span>
+      <span className="w-0.5 h-5 rounded-full shrink-0 transition-colors duration-200" style={{ backgroundColor: teamColor }} />
       <div className="flex-1">
         <DriverCombobox
           ref={inputRef}

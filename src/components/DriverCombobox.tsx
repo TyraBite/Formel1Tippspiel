@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback, forwardRef } from 'react'
 import { Combobox } from '@headlessui/react'
+import { getTeamColor } from '../lib/teamColors'
 import type { Driver } from '../types'
 
 interface Props {
@@ -65,7 +66,10 @@ export const DriverCombobox = forwardRef<HTMLInputElement, Props>(
                   }
                 >
                   <span>{driver.code} – {driver.name}</span>
-                  <span className="text-f1-muted text-xs">{driver.team}</span>
+                  <span className="flex items-center gap-1.5 text-f1-muted text-xs shrink-0">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getTeamColor(driver.team) }} />
+                    {driver.team}
+                  </span>
                 </Combobox.Option>
               )
             })}

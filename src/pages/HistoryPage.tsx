@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { subscribeToEvents, subscribeToEventScores, subscribeToEventSessionResults, getUsers, getDrivers, subscribeToEventTips } from '../lib/firestore'
 import { syncResults } from '../lib/syncResults'
+import { getTeamColor } from '../lib/teamColors'
 import { useAuth } from '../contexts/AuthContext'
 import { useLivePositions } from '../lib/useLivePositions'
 import { usePracticePositions, type PracticeSessionKey } from '../lib/usePracticePositions'
@@ -53,6 +54,7 @@ export function HistoryPage() {
   if (!event) return <div className="text-f1-muted">Laden...</div>
 
   const driverName = (id: string) => drivers.find(d => d.id === id)?.name ?? id
+  const driverTeamMap = new Map(drivers.map(d => [d.id, d.team]))
 
   // driverId → actual position per session
   const actualPos: Record<string, Record<string, number>> = {}
@@ -242,7 +244,10 @@ export function HistoryPage() {
                                     b.points === 3 ? 'bg-f1-gold/10' : b.points === 1 ? 'bg-f1-green/10' : ''
                                   }`}>
                                     <span className="text-f1-muted font-mono text-xs w-4 shrink-0">{b.pos}</span>
-                                    <span className={`flex-1 ${b.points > 0 ? 'text-white' : 'text-f1-muted'}`}>
+                                    <span className={`flex items-center gap-1.5 flex-1 ${b.points > 0 ? 'text-white' : 'text-f1-muted'}`}>
+                                      {b.predictedDriverId && (
+                                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: getTeamColor(driverTeamMap.get(b.predictedDriverId) ?? '') }} />
+                                      )}
                                       {b.predictedDriverId ? driverName(b.predictedDriverId) : '–'}
                                     </span>
                                     {showActual && (
@@ -263,7 +268,12 @@ export function HistoryPage() {
                                 .map(([pos, driverId]) => (
                                   <div key={pos} className="flex items-center gap-2 py-1 px-1.5">
                                     <span className="text-f1-muted font-mono text-xs w-4 shrink-0">{pos}</span>
-                                    <span className="text-f1-muted flex-1">{driverId ? driverName(driverId) : '–'}</span>
+                                    <span className="flex items-center gap-1.5 text-f1-muted flex-1">
+                                      {driverId && (
+                                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: getTeamColor(driverTeamMap.get(driverId) ?? '') }} />
+                                      )}
+                                      {driverId ? driverName(driverId) : '–'}
+                                    </span>
                                   </div>
                                 ))
                             )}
