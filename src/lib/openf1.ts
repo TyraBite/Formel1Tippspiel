@@ -100,7 +100,8 @@ export interface OpenF1RaceControl {
   driver_number: number | null
 }
 
-// Cache sessions() per year so parallel callers share one HTTP request
+// Cache meetings/sessions per year so parallel callers share one HTTP request
+const _meetingsCache = new Map<number, Promise<OpenF1Meeting[]>>()
 const _sessionsCache = new Map<number, Promise<OpenF1Session[]>>()
 
 export interface OpenF1Interval {
@@ -130,7 +131,14 @@ export interface OpenF1Pit {
 }
 
 export const openf1 = {
-  meetings: (year: number) => get<OpenF1Meeting>(`/meetings?year=${year}`),
+  meetings: (year: number): Promise<OpenF1Meeting[]> => {
+    if (!_meetingsCache.has(year)) {
+      const p = get<OpenF1Meeting>(`/meetings?year=${year}`)
+      p.catch(() => _meetingsCache.delete(year))
+      _meetingsCache.set(year, p)
+    }
+    return _meetingsCache.get(year)!
+  },
   sessions: (year: number): Promise<OpenF1Session[]> => {
     if (!_sessionsCache.has(year)) {
       const p = get<OpenF1Session>(`/sessions?year=${year}`)

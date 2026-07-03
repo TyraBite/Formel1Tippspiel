@@ -138,7 +138,7 @@ async function seed() {
     circuit: 'Silverstone Circuit', country: 'Great Britain', isSprintWeekend: true,
     sessions: {
       fp1:              session('2026-07-03T12:30:00Z', 1, 'upcoming'),
-      fp3_or_sprint_q:  session('2026-07-03T16:30:00Z', 1, 'upcoming'),
+      fp3_or_sprint_q:  session('2026-07-03T15:30:00Z', 1, 'upcoming'),
       sprint_race:      session('2026-07-04T11:00:00Z', 1, 'upcoming'),
       qualifying:       session('2026-07-04T15:00:00Z', 1, 'upcoming'),
       race:             session('2026-07-05T14:00:00Z', 2, 'upcoming'),

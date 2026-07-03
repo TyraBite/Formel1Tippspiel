@@ -91,7 +91,8 @@ export function AdminPage() {
     setErrorMsg('')
     try {
       const year = new Date().getFullYear()
-      const [r1, r2] = await Promise.all([syncSeason(year), syncSeason(year + 1)])
+      const r1 = await syncSeason(year)
+      const r2 = await syncSeason(year + 1)
       setSeasonResults([r1, r2])
       setSeasonStatus('done')
     } catch (err) {
