@@ -92,8 +92,7 @@ export function AdminPage() {
     try {
       const year = new Date().getFullYear()
       const r1 = await syncSeason(year)
-      const r2 = await syncSeason(year + 1)
-      setSeasonResults([r1, r2])
+      setSeasonResults([r1])
       setSeasonStatus('done')
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Unbekannter Fehler')
