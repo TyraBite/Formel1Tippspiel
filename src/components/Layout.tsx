@@ -23,6 +23,12 @@ export function Layout() {
               : 'text-f1-muted hover:text-white text-sm uppercase tracking-wide transition-colors'}>
             Home
           </NavLink>
+          <NavLink to="/live" className={({ isActive }) =>
+            isActive
+              ? 'text-f1-red font-bold text-sm uppercase tracking-wide'
+              : 'text-f1-muted hover:text-white text-sm uppercase tracking-wide transition-colors'}>
+            Live
+          </NavLink>
           <NavLink to="/leaderboard" className={({ isActive }) =>
             isActive
               ? 'text-f1-red font-bold text-sm uppercase tracking-wide'

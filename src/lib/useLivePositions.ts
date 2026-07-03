@@ -3,7 +3,7 @@ import { openf1, findOpenF1Session } from './openf1'
 import { processPositions } from './resultProcessing'
 import type { F1Event, Driver, DriverResult, TippableSessionType } from '../types'
 
-const TIPPABLE_TO_EVENT_SESSION: Record<TippableSessionType, keyof F1Event['sessions']> = {
+export const TIPPABLE_TO_EVENT_SESSION: Record<TippableSessionType, keyof F1Event['sessions']> = {
   qualifying: 'qualifying',
   race: 'race',
   sprint_race: 'sprint_race',

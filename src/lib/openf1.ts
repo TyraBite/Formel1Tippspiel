@@ -76,6 +76,30 @@ async function get<T>(path: string, emptyOn404 = false): Promise<T[]> {
   return res.json()
 }
 
+export interface OpenF1Weather {
+  session_key: number
+  date: string
+  air_temp: number
+  track_temp: number
+  humidity: number
+  wind_speed: number
+  wind_direction: number
+  rainfall: boolean
+  pressure: number
+}
+
+export interface OpenF1RaceControl {
+  session_key: number
+  date: string
+  category: string
+  flag: string | null
+  message: string
+  lap_number: number | null
+  scope: string | null
+  sector: number | null
+  driver_number: number | null
+}
+
 // Cache sessions() per year so parallel callers share one HTTP request
 const _sessionsCache = new Map<number, Promise<OpenF1Session[]>>()
 
@@ -92,4 +116,6 @@ export const openf1 = {
   drivers: (sessionKey: number) => get<OpenF1Driver>(`/drivers?session_key=${sessionKey}`),
   positions: (sessionKey: number) => get<OpenF1Position>(`/position?session_key=${sessionKey}`, true),
   sessionResults: (sessionKey: number) => get<OpenF1SessionResult>(`/session_result?session_key=${sessionKey}`, true),
+  weather: (sessionKey: number) => get<OpenF1Weather>(`/weather?session_key=${sessionKey}`, true),
+  raceControl: (sessionKey: number) => get<OpenF1RaceControl>(`/race_control?session_key=${sessionKey}`, true),
 }
