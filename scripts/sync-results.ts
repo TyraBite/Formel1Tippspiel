@@ -42,8 +42,7 @@ async function syncResults(year: number) {
   const of1Sessions = await openf1.sessions(year)
 
   if (of1Sessions.length === 0) {
-    console.log(`No OpenF1 sessions found for ${year}, skipping.`)
-    return
+    console.log(`[sync] Keine OpenF1 Sessions für ${year} — Firestore-Fallback aktiv`)
   }
 
   const eventsSnap = await db.collection('events').get()
