@@ -129,8 +129,10 @@ Jeder Push auf `main` löst automatisch ein Deployment auf GitHub Pages aus.
 |---|---|---|
 | `deploy.yml` | Push auf `main` | Build + Firestore Rules + Seed + GitHub Pages |
 | `seed-tips.yml` | Manuell (dispatch) | Seed-Scripts manuell auslösen |
-| `result-sync.yml` | Stündlich Fr/Sa/So | Ergebnisse von OpenF1 holen + Scores berechnen |
-| `schedule-check.yml` | Täglich 06:00 UTC | Rennwochenende erkennen, result-sync auslösen |
+| `result-sync.yml` | Manuell (dispatch) | Ergebnisse von OpenF1 holen + Scores berechnen |
+| `schedule-check.yml` | Alle 5 min Mo/Fr/Sa/So | Session-Fenster prüfen, result-sync auslösen |
+
+**Sync-Logik:** `schedule-check` triggert `result-sync` wenn eine tippbare Session in den letzten 90 min endete oder in den nächsten 30 min endet — so starten Polls kurz vor dem erwarteten Session-Ende und laufen bis die Ergebnisse stabil sind.
 
 **Benötigte GitHub Secrets** (Settings → Secrets → Actions):
 - `VITE_FIREBASE_API_KEY`
