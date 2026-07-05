@@ -4,6 +4,7 @@ import { openf1 } from '../src/lib/openf1'
 import type { OpenF1Session } from '../src/lib/openf1'
 import { calculateScore } from '../src/lib/scoring'
 import { processSessionResults, processPositions } from '../src/lib/resultProcessing'
+import { jolpicaResults } from '../src/lib/jolpica'
 import type { F1Event, Driver, DriverResult, SessionResult, Score, Tip, TippableSessionType } from '../src/types'
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!)
@@ -109,6 +110,11 @@ async function syncResults(year: number) {
         console.log(`  ${event.id}_${sessionType}: ${results.length} Fahrer`)
       } else {
         console.log(`  Kein OpenF1-Key für ${event.id}_${sessionType}`)
+      }
+
+      if (results.length === 0 && eventData.round) {
+        results = await jolpicaResults(sessionType, year, eventData.round, driverByNumber)
+        if (results.length > 0) console.log(`[sync] Jolpica: ${event.id}_${sessionType}`)
       }
 
       if (results.length === 0) {

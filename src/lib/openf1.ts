@@ -117,14 +117,6 @@ export interface OpenF1RaceControl {
 const _meetingsCache = new Map<number, Promise<OpenF1Meeting[]>>()
 const _sessionsCache = new Map<number, Promise<OpenF1Session[]>>()
 
-export interface OpenF1Interval {
-  session_key: number
-  driver_number: number
-  date: string
-  gap_to_leader: number | string | null
-  interval: number | string | null
-}
-
 export interface OpenF1Stint {
   session_key: number
   driver_number: number
@@ -147,6 +139,7 @@ export const openf1 = {
   meetings: (year: number): Promise<OpenF1Meeting[]> => {
     if (!_meetingsCache.has(year)) {
       const p = get<OpenF1Meeting>(`/meetings?year=${year}`)
+      p.then(m => { if (m.length === 0) _meetingsCache.delete(year) })
       p.catch(() => _meetingsCache.delete(year))
       _meetingsCache.set(year, p)
     }
@@ -155,7 +148,8 @@ export const openf1 = {
   sessions: (year: number): Promise<OpenF1Session[]> => {
     if (!_sessionsCache.has(year)) {
       const p = get<OpenF1Session>(`/sessions?year=${year}`)
-      p.catch(() => _sessionsCache.delete(year)) // clear on failure so retry re-fetches
+      p.then(s => { if (s.length === 0) _sessionsCache.delete(year) })
+      p.catch(() => _sessionsCache.delete(year))
       _sessionsCache.set(year, p)
     }
     return _sessionsCache.get(year)!
@@ -165,7 +159,6 @@ export const openf1 = {
   sessionResults: (sessionKey: number) => get<OpenF1SessionResult>(`/session_result?session_key=${sessionKey}`, true),
   weather: (sessionKey: number) => get<OpenF1Weather>(`/weather?session_key=${sessionKey}`, true),
   raceControl: (sessionKey: number) => get<OpenF1RaceControl>(`/race_control?session_key=${sessionKey}`, true),
-  intervals: (sessionKey: number) => get<OpenF1Interval>(`/intervals?session_key=${sessionKey}`, true),
   stints: (sessionKey: number) => get<OpenF1Stint>(`/stints?session_key=${sessionKey}`, true),
   pits: (sessionKey: number) => get<OpenF1Pit>(`/pit?session_key=${sessionKey}`, true),
 }

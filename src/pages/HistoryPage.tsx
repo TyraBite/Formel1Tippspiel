@@ -4,7 +4,6 @@ import { subscribeToEvents, subscribeToEventScores, subscribeToEventSessionResul
 import { calculateScoresForSession } from '../lib/syncResults'
 import { getTeamColor } from '../lib/teamColors'
 import { useAuth } from '../contexts/AuthContext'
-import { useLivePositions } from '../lib/useLivePositions'
 import { usePracticePositions, type PracticeSessionKey } from '../lib/usePracticePositions'
 import type { F1Event, Score, AppUser, Tip, TippableSessionType, Driver, SessionResult } from '../types'
 
@@ -37,15 +36,6 @@ export function HistoryPage() {
     getDrivers(year).then(setDrivers)
     return () => { unsubEvents(); unsubScores(); unsubResults(); unsubTips() }
   }, [eventId])
-
-  const liveQualifying   = useLivePositions(event, 'qualifying', drivers)
-  const liveRace         = useLivePositions(event, 'race', drivers)
-  const liveSprintQ      = useLivePositions(event, 'sprint_qualifying', drivers)
-  const liveSprintRace   = useLivePositions(event, 'sprint_race', drivers)
-  const liveBySession: Record<TippableSessionType, typeof liveQualifying> = {
-    qualifying: liveQualifying, race: liveRace,
-    sprint_qualifying: liveSprintQ, sprint_race: liveSprintRace,
-  }
 
   const fp1Data = usePracticePositions(event, 'fp1', drivers)
   const fp2Data = usePracticePositions(event, 'fp2', drivers)
@@ -174,7 +164,6 @@ export function HistoryPage() {
         const sessionEnded = sessionInfo ? sessionInfo.endTime.toDate() <= now : false
         const sessionIsActive = sessionStarted && !sessionEnded
         const sessionResult = sessionResults.find(r => r.sessionType === sessionType)
-        const live = liveBySession[sessionType]
 
         return (
           <div key={sessionType} className="card mb-4">
@@ -209,24 +198,6 @@ export function HistoryPage() {
               <p className="text-f1-muted text-sm">Tipps werden nach Session-Start sichtbar</p>
             ) : (
               <>
-                {sessionIsActive && (
-                  <div className="mb-4">
-                    <p className="text-f1-muted text-xs mb-2">aktualisiert alle 15s</p>
-                    {live.length === 0 ? (
-                      <p className="text-f1-muted text-sm">Lade Live-Daten…</p>
-                    ) : (
-                      <div className="space-y-0.5">
-                        {live.slice(0, 10).map(dr => (
-                          <div key={dr.driverId} className="flex items-center gap-2 py-1 px-1.5 text-sm">
-                            <span className="text-f1-muted font-mono text-xs w-4 shrink-0">{dr.position}</span>
-                            <span className="font-mono text-xs w-8 shrink-0 text-white">{dr.driverCode}</span>
-                            <span className="text-f1-muted text-xs">{dr.driverName}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {users.map(user => {
                     const score = sessionScores.find(s => s.userId === user.id)

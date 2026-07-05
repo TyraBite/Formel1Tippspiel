@@ -1,6 +1,7 @@
 import { Timestamp } from 'firebase/firestore'
 import { openf1, findOpenF1Session } from './openf1'
 import { processSessionResults, processPositions } from './resultProcessing'
+import { jolpicaResults } from './jolpica'
 import { getEvents, getDrivers, getSessionResult, saveSessionResult, saveScore, getTipsForSession } from './firestore'
 import { calculateScore } from './scoring'
 import type { F1Event, Driver, DriverResult, SessionResult, TippableSessionType } from '../types'
@@ -74,6 +75,11 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
           const positions = await openf1.positions(of1Key)
           results = processPositions(positions, driverByNumber)
         }
+      }
+
+      if (results.length === 0 && event.round) {
+        results = await jolpicaResults(sessionType, year, event.round, driverByNumber)
+        if (results.length > 0) console.log(`[sync] Jolpica: ${event.id}_${sessionType}`)
       }
 
       if (results.length === 0) {
