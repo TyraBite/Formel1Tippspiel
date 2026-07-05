@@ -28,9 +28,9 @@ function mapResults(raw: any[], driverByNumber: Map<number, Driver>): DriverResu
       driverId: driver.id,
       driverCode: driver.code,
       driverName: driver.name,
-      dnf: pt === 'R' || undefined,
-      dns: pt === 'W' || undefined,
-      dsq: pt === 'D' || undefined,
+      ...(pt === 'R' ? { dnf: true } : {}),
+      ...(pt === 'W' ? { dns: true } : {}),
+      ...(pt === 'D' ? { dsq: true } : {}),
     }]
   }).sort((a, b) => a.position - b.position)
 }

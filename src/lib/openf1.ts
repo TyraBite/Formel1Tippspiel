@@ -1,13 +1,5 @@
 const BASE = 'https://api.openf1.org/v1'
 
-function getAuthHeaders(): HeadersInit {
-  const nodeKey = typeof process !== 'undefined' && typeof window === 'undefined'
-    ? process.env.OPENF1_API_KEY : undefined
-  const viteKey = typeof window !== 'undefined'
-    ? (import.meta as any)?.env?.VITE_OPENF1_API_KEY : undefined
-  const key = nodeKey ?? viteKey
-  return key ? { Authorization: `Bearer ${key}` } : {}
-}
 
 export interface OpenF1Meeting {
   meeting_key: number
@@ -77,7 +69,7 @@ export function findOpenF1Session(sessions: OpenF1Session[], expectedStart: Date
 }
 
 async function get<T>(path: string, emptyOn404 = false): Promise<T[]> {
-  const res = await fetch(`${BASE}${path}`, { headers: getAuthHeaders() })
+  const res = await fetch(`${BASE}${path}`)
   if (!res.ok) {
     if (emptyOn404 && res.status === 404) return []
     if (res.status === 401 || res.status === 403) {
