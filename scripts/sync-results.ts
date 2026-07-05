@@ -65,13 +65,33 @@ async function syncResults(year: number) {
 
   const usersSnap = await db.collection('users').get()
   const userIds = usersSnap.docs.map(d => d.id)
-  console.log(`  ${userIds.length} Spieler, ${of1Sessions.length} Sessions, ${yearEvents.length} Events`)
+
+  const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 3_600_000)
+  const eventsToSync = yearEvents
+    .map(e => {
+      const ed = e as any
+      let lastEnd = new Date(0)
+      for (const key of Object.values(TIPPABLE_TO_EVENT_SESSION)) {
+        const s = ed.sessions?.[key]
+        if (s?.endTime) {
+          const d: Date = s.endTime.toDate()
+          if (d < now && d > lastEnd) lastEnd = d
+        }
+      }
+      return { event: e, lastEnd }
+    })
+    .filter(({ lastEnd }) => lastEnd > oneMonthAgo)
+    .sort((a, b) => b.lastEnd.getTime() - a.lastEnd.getTime())
+    .slice(0, 3)
+    .map(({ event }) => event)
+
+  console.log(`  ${userIds.length} Spieler, ${of1Sessions.length} Sessions — sync ${eventsToSync.length} Events:`, eventsToSync.map(e => e.id).join(', '))
 
   let resultsAdded = 0, resultsUpdated = 0, scoresCalculated = 0, skipped = 0
 
   const tippableTypes = Object.keys(TIPPABLE_TO_EVENT_SESSION) as TippableSessionType[]
 
-  for (const event of yearEvents) {
+  for (const event of eventsToSync) {
     const eventData = event as any
     for (const sessionType of tippableTypes) {
       if ((sessionType === 'sprint_race' || sessionType === 'sprint_qualifying') && !eventData.isSprintWeekend) continue
@@ -85,10 +105,9 @@ async function syncResults(year: number) {
 
       const existingSnap = await db.collection('session_results').doc(`${event.id}_${sessionType}`).get()
       const existing = existingSnap.exists ? existingSnap.data() as SessionResult : null
-      const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 3_600_000)
       const officialAt = (existing?.officialAt as any)?.toDate?.()
-      if (existing?.status === 'official' && officialAt && officialAt < twoWeeksAgo) {
-        console.log(`  ${event.id}_${sessionType}: offiziell seit ${officialAt.toISOString().slice(0,10)}, älter als 2 Wochen → übersprungen`)
+      if (existing?.status === 'official' && officialAt && officialAt < oneMonthAgo) {
+        console.log(`  ${event.id}_${sessionType}: offiziell seit ${officialAt.toISOString().slice(0,10)} → übersprungen`)
         continue
       }
 

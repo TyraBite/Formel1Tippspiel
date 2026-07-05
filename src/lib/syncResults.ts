@@ -32,9 +32,8 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
     openf1.sessions(year),
   ])
 
-  const yearEvents = events.filter(e => e.id.endsWith(`_${year}`))
-  console.log(`[sync] ${yearEvents.length} events, ${of1Sessions.length} sessions, ${drivers.length} drivers`)
-  if (yearEvents.length === 0) {
+  const allYearEvents = events.filter(e => e.id.endsWith(`_${year}`))
+  if (allYearEvents.length === 0) {
     throw new Error(`Keine Events für ${year} in Firestore — Saison-Sync zuerst ausführen`)
   }
   if (of1Sessions.length === 0) {
@@ -43,6 +42,26 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
 
   const driverByNumber = new Map<number, Driver>()
   for (const d of drivers) driverByNumber.set(d.number, d)
+
+  const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 3_600_000)
+  const yearEvents = allYearEvents
+    .map(e => {
+      let lastEnd = new Date(0)
+      for (const key of Object.values(TIPPABLE_TO_EVENT_SESSION)) {
+        const s = e.sessions[key as keyof F1Event['sessions']]
+        if (s?.endTime) {
+          const d = s.endTime.toDate()
+          if (d < now && d > lastEnd) lastEnd = d
+        }
+      }
+      return { event: e, lastEnd }
+    })
+    .filter(({ lastEnd }) => lastEnd > oneMonthAgo)
+    .sort((a, b) => b.lastEnd.getTime() - a.lastEnd.getTime())
+    .slice(0, 3)
+    .map(({ event }) => event)
+
+  console.log(`[sync] ${yearEvents.length} Events (letzte 3, ≤ 1 Monat), ${of1Sessions.length} Sessions, ${drivers.length} Fahrer`)
 
   const tippableTypes = Object.keys(TIPPABLE_TO_EVENT_SESSION) as TippableSessionType[]
 
@@ -58,9 +77,8 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
       if (endTime > now) continue
 
       const existing = await getSessionResult(event.id, sessionType)
-      const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 3_600_000)
       const officialAt = existing?.officialAt?.toDate()
-      if (existing?.status === 'official' && officialAt && officialAt < twoWeeksAgo) continue
+      if (existing?.status === 'official' && officialAt && officialAt < oneMonthAgo) continue
 
       let results: DriverResult[] = []
 
