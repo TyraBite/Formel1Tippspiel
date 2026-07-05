@@ -114,9 +114,6 @@ async function syncResults(year: number) {
       let results: DriverResult[] = []
 
       const of1Key = findOpenF1Session(of1Sessions, sessionInfo.startTime.toDate())
-      if (!of1Key) {
-        console.log(`[sync] kein OpenF1-Match: ${event.id}_${sessionType} @ ${sessionInfo.startTime.toDate().toISOString()}`)
-      }
       if (of1Key) {
         const sessionRes = await openf1.sessionResults(of1Key)
         console.log(`  session_key=${of1Key}: ${sessionRes.length} Einträge (session_result)`)
@@ -128,7 +125,7 @@ async function syncResults(year: number) {
         }
         console.log(`  ${event.id}_${sessionType}: ${results.length} Fahrer`)
       } else {
-        console.log(`  Kein OpenF1-Key für ${event.id}_${sessionType}`)
+        console.log(`[sync] kein OpenF1-Match: ${event.id}_${sessionType} @ ${sessionInfo.startTime.toDate().toISOString()}`)
       }
 
       if (results.length === 0 && eventData.round) {

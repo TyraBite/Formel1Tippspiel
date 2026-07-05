@@ -7,9 +7,7 @@ on:
         description: 'Seed script to run'
         required: true
         default: 'seed:tips-monaco'
-        type: choice
-        options:
-          - seed:tips-monaco
+        type: string
 
 jobs:
   seed:

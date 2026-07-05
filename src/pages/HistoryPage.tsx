@@ -76,8 +76,8 @@ export function HistoryPage() {
     const day = now.getUTCDay() // 0=Sun,1=Mon,5=Fri,6=Sat
     if (![0, 1, 5, 6].includes(day)) return '–'
     const next = new Date(now)
-    next.setUTCMinutes(0, 0, 0)
-    next.setUTCHours(next.getUTCHours() + 1)
+    const nextMin = Math.ceil((next.getUTCMinutes() + 1) / 5) * 5
+    next.setUTCMinutes(nextMin, 0, 0)
     return next.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr'
   }
 
@@ -137,7 +137,7 @@ export function HistoryPage() {
         <div>
           <p className="text-sm font-medium">Ergebnisse & Punkte</p>
           <p className="text-xs text-f1-muted">
-            Automatischer Sync: stündlich Fr–Mo · Nächster: {getNextSyncLabel()}
+            Automatischer Sync: alle 5 Min Fr–Mo · Nächster: {getNextSyncLabel()}
           </p>
           {syncMessage && <p className="text-xs text-f1-green mt-1">{syncMessage}</p>}
         </div>
@@ -271,7 +271,7 @@ export function HistoryPage() {
                   })}
                 </div>
                 {sessionEnded && sessionScores.length === 0 && (
-                  <p className="text-f1-muted text-sm mt-4">Ergebnisse ausstehend — Sync läuft stündlich</p>
+                  <p className="text-f1-muted text-sm mt-4">Ergebnisse ausstehend — Sync läuft alle 5 Min</p>
                 )}
               </>
             )}

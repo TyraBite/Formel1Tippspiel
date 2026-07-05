@@ -172,14 +172,11 @@ export async function calculateScoresForSession(
   const sessionResult = await getSessionResult(eventId, sessionType)
   if (!sessionResult) return 0
 
-  const now = new Date()
+  const isOfficial = sessionResult.status === 'official'
   const tips = await getTipsForSession(eventId, sessionType)
   let count = 0
   for (const tip of tips) {
     const { points, breakdown } = calculateScore(tip, sessionResult)
-    const endTime = sessionResult.fetchedAt.toDate()
-    const msSinceEnd = now.getTime() - endTime.getTime()
-    const isOfficial = msSinceEnd >= 3 * 3_600_000
     await saveScore({
       id: `${tip.userId}_${eventId}_${sessionType}`,
       userId: tip.userId,
