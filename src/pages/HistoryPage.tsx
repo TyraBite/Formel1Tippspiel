@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { subscribeToEvents, subscribeToEventScores, subscribeToEventSessionResults, getUsers, getDrivers, subscribeToEventTips } from '../lib/firestore'
-import { syncResults } from '../lib/syncResults'
+import { calculateScoresForSession } from '../lib/syncResults'
 import { getTeamColor } from '../lib/teamColors'
 import { useAuth } from '../contexts/AuthContext'
 import { useLivePositions } from '../lib/useLivePositions'
@@ -97,10 +97,16 @@ export function HistoryPage() {
     setSyncMessage(null)
     try {
       const year = parseInt(event.id.split('_').pop() ?? '2026')
-      const result = await syncResults(year)
-      setSyncMessage(`${result.scoresCalculated} Scores berechnet ✓`)
-    } catch {
-      setSyncMessage('Fehler beim Sync')
+      const sessionTypes: TippableSessionType[] = event.isSprintWeekend
+        ? ['sprint_qualifying', 'sprint_race', 'qualifying', 'race']
+        : ['qualifying', 'race']
+      let total = 0
+      for (const st of sessionTypes) {
+        total += await calculateScoresForSession(event.id, st, year)
+      }
+      setSyncMessage(total > 0 ? `${total} Scores berechnet ✓` : 'Keine ausstehenden Ergebnisse')
+    } catch (err) {
+      setSyncMessage(err instanceof Error ? err.message : 'Fehler beim Sync')
     } finally {
       setSyncing(false)
     }

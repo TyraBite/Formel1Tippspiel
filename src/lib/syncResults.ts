@@ -37,7 +37,7 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
     throw new Error(`Keine Events für ${year} in Firestore — Saison-Sync zuerst ausführen`)
   }
   if (of1Sessions.length === 0) {
-    throw new Error(`OpenF1 lieferte keine Sessions für ${year} — API nicht erreichbar oder keine Daten`)
+    console.log(`[sync] OpenF1 keine Sessions für ${year}, versuche Firestore-Fallback`)
   }
 
   const driverByNumber = new Map<number, Driver>()
