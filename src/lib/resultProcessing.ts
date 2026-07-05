@@ -15,9 +15,9 @@ export function processSessionResults(
         driverId: driver.id,
         driverCode: driver.code,
         driverName: driver.name,
-        dnf: r.dnf || undefined,
-        dns: r.dns || undefined,
-        dsq: r.dsq || undefined,
+        ...(r.dnf ? { dnf: true } : {}),
+        ...(r.dns ? { dns: true } : {}),
+        ...(r.dsq ? { dsq: true } : {}),
       }
       return [result]
     })
