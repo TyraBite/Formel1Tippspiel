@@ -95,6 +95,9 @@ async function syncResults(year: number) {
       let results: DriverResult[] = []
 
       const of1Key = findOpenF1Session(of1Sessions, sessionInfo.startTime.toDate())
+      if (!of1Key) {
+        console.log(`[sync] kein OpenF1-Match: ${event.id}_${sessionType} @ ${sessionInfo.startTime.toDate().toISOString()}`)
+      }
       if (of1Key) {
         const sessionRes = await openf1.sessionResults(of1Key)
         console.log(`  session_key=${of1Key}: ${sessionRes.length} Einträge (session_result)`)
@@ -110,8 +113,31 @@ async function syncResults(year: number) {
       }
 
       if (results.length === 0) {
-        console.log(`  Keine Daten für ${event.id}_${sessionType}, übersprungen.`)
-        skipped++
+        if (existing && existing.results && existing.results.length > 0) {
+          console.log(`[sync] OpenF1 leer, nutze Firestore-Daten: ${event.id}_${sessionType}`)
+          for (const userId of userIds) {
+            const tipDoc = await db.collection('tips').doc(`${userId}_${event.id}_${sessionType}`).get()
+            if (!tipDoc.exists) continue
+            const tip = tipDoc.data() as Tip
+            const { points, breakdown } = calculateScore(tip, existing)
+            const score: Score = {
+              id: `${userId}_${event.id}_${sessionType}`,
+              userId,
+              eventId: event.id,
+              sessionType,
+              points,
+              breakdown,
+              isProvisional: existing.status !== 'official',
+              calculatedAt: Timestamp.now() as any,
+            }
+            await db.collection('scores').doc(score.id).set(score)
+            console.log(`  Score: ${score.id} = ${points} pts`)
+            scoresCalculated++
+          }
+        } else {
+          console.log(`  Keine Daten für ${event.id}_${sessionType}, übersprungen.`)
+          skipped++
+        }
         continue
       }
 
@@ -161,4 +187,6 @@ async function syncResults(year: number) {
 }
 
 const year = new Date().getFullYear()
-syncResults(year).catch(console.error).finally(() => process.exit(0))
+syncResults(year)
+  .then(() => process.exit(0))
+  .catch(err => { console.error('[sync] Fatal:', err); process.exit(1) })

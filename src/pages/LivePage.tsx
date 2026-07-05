@@ -71,6 +71,7 @@ export function LivePage() {
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [sessionKey, setSessionKey] = useState<number | null>(null)
   const [weather, setWeather] = useState<OpenF1Weather | null>(null)
+  const [weatherFetched, setWeatherFetched] = useState(false)
   const [raceControl, setRaceControl] = useState<OpenF1RaceControl[]>([])
   const [intervals, setIntervals] = useState<OpenF1Interval[]>([])
   const [stints, setStints] = useState<OpenF1Stint[]>([])
@@ -143,14 +144,19 @@ export function LivePage() {
 
   // Weather polling (60s)
   useEffect(() => {
-    if (!sessionKey) { setWeather(null); return }
+    if (!sessionKey) { setWeather(null); setWeatherFetched(false); return }
     let cancelled = false
     async function fetch() {
       if (cancelled) return
       try {
         const data = await openf1.weather(sessionKey!)
-        if (!cancelled && data.length > 0) setWeather(data[data.length - 1])
-      } catch {}
+        if (!cancelled) {
+          if (data.length > 0) setWeather(data[data.length - 1])
+          setWeatherFetched(true)
+        }
+      } catch {
+        if (!cancelled) setWeatherFetched(true)
+      }
     }
     void fetch()
     const t = setInterval(() => void fetch(), 60_000)
@@ -355,7 +361,7 @@ export function LivePage() {
             </span>
           </div>
         ) : (
-          <p className="text-f1-muted text-sm mb-3">Wetterdaten laden…</p>
+          <p className="text-f1-muted text-sm mb-3">{weatherFetched ? 'Keine Wetterdaten verfügbar' : 'Wetterdaten laden…'}</p>
         )}
         <div className="flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full shrink-0 ${flagDot}`} />

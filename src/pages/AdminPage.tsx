@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Timestamp } from 'firebase/firestore'
 import { syncSeason, type SyncResult } from '../lib/sync'
-import { syncResults, calculateScoresForSession, type SyncResultsResult } from '../lib/syncResults'
+import { syncResults, calculateScoresForSession, recalculateAllScores, type SyncResultsResult } from '../lib/syncResults'
 import { subscribeToEvents, getTipsForSession, saveTip, getUsers, getDrivers } from '../lib/firestore'
 import { TipForm } from '../components/TipForm'
 import type { F1Event, AppUser, Tip, TippableSessionType, Driver } from '../types'
@@ -31,6 +31,8 @@ export function AdminPage() {
   const [adminDrivers, setAdminDrivers] = useState<Driver[]>([])
   const [adminSaveStatus, setAdminSaveStatus] = useState('')
   const [adminSaving, setAdminSaving] = useState(false)
+  const [recalcStatus, setRecalcStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [recalcCount, setRecalcCount] = useState(0)
 
   const selectedEvent = adminEvents.find(e => e.id === selectedEventId) ?? null
   const adminSessions: TippableSessionType[] = selectedEvent?.isSprintWeekend
@@ -97,6 +99,21 @@ export function AdminPage() {
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Unbekannter Fehler')
       setSeasonStatus('error')
+    }
+  }
+
+  async function handleRecalcScores() {
+    setRecalcStatus('loading')
+    setRecalcCount(0)
+    setErrorMsg('')
+    try {
+      const year = new Date().getFullYear()
+      const count = await recalculateAllScores(year)
+      setRecalcCount(count)
+      setRecalcStatus('done')
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Unbekannter Fehler')
+      setRecalcStatus('error')
     }
   }
 
@@ -174,7 +191,23 @@ export function AdminPage() {
         )}
       </div>
 
-      {(seasonStatus === 'error' || resultsStatus === 'error') && (
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-f1-muted mb-3">Punkte neu berechnen</h2>
+        <button
+          onClick={handleRecalcScores}
+          disabled={recalcStatus === 'loading'}
+          className="w-full bg-f1-card border border-f1-border text-white px-4 py-3 rounded font-medium disabled:opacity-50 hover:border-white transition-colors"
+        >
+          {recalcStatus === 'loading' ? 'Berechne…' : 'Punkte neu berechnen (aus Firestore-Ergebnissen)'}
+        </button>
+        {recalcStatus === 'done' && (
+          <div className="mt-3 p-3 bg-f1-card rounded border border-f1-border text-sm">
+            <p className="text-f1-muted">{recalcCount} Scores berechnet</p>
+          </div>
+        )}
+      </div>
+
+      {(seasonStatus === 'error' || resultsStatus === 'error' || recalcStatus === 'error') && (
         <div className="p-4 bg-red-950 rounded border border-red-800">
           <p className="text-red-400 text-sm">{errorMsg}</p>
         </div>

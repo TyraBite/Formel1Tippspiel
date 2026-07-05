@@ -33,7 +33,12 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
 
   const yearEvents = events.filter(e => e.id.endsWith(`_${year}`))
   console.log(`[sync] ${yearEvents.length} events, ${of1Sessions.length} sessions, ${drivers.length} drivers`)
-  if (yearEvents.length === 0 || of1Sessions.length === 0) return result
+  if (yearEvents.length === 0) {
+    throw new Error(`Keine Events für ${year} in Firestore — Saison-Sync zuerst ausführen`)
+  }
+  if (of1Sessions.length === 0) {
+    throw new Error(`OpenF1 lieferte keine Sessions für ${year} — API nicht erreichbar oder keine Daten`)
+  }
 
   const driverByNumber = new Map<number, Driver>()
   for (const d of drivers) driverByNumber.set(d.number, d)
@@ -59,6 +64,9 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
       let results: DriverResult[] = []
 
       const of1Key = findOpenF1Session(of1Sessions, sessionInfo.startTime.toDate())
+      if (!of1Key) {
+        console.log(`[sync] kein OpenF1-Match: ${event.id}_${sessionType} @ ${sessionInfo.startTime.toDate().toISOString()}`)
+      }
       if (of1Key) {
         const sessionRes = await openf1.sessionResults(of1Key)
         results = processSessionResults(sessionRes, driverByNumber)
@@ -68,7 +76,30 @@ export async function syncResults(year: number): Promise<SyncResultsResult> {
         }
       }
 
-      if (results.length === 0) { console.log(`[sync] skip (keine Daten): ${event.id}_${sessionType}`); result.skipped++; continue }
+      if (results.length === 0) {
+        if (existing && existing.results.length > 0) {
+          console.log(`[sync] OpenF1 leer, nutze vorhandene Firestore-Ergebnisse: ${event.id}_${sessionType}`)
+          const tips = await getTipsForSession(event.id, sessionType)
+          for (const tip of tips) {
+            const { points, breakdown } = calculateScore(tip, existing)
+            await saveScore({
+              id: `${tip.userId}_${event.id}_${sessionType}`,
+              userId: tip.userId,
+              eventId: event.id,
+              sessionType,
+              points,
+              breakdown,
+              isProvisional: existing.status !== 'official',
+              calculatedAt: Timestamp.now(),
+            })
+            result.scoresCalculated++
+          }
+          continue
+        }
+        console.log(`[sync] skip (keine Daten): ${event.id}_${sessionType}`)
+        result.skipped++
+        continue
+      }
 
       const msSinceEnd = now.getTime() - endTime.getTime()
       const isOfficial = msSinceEnd >= 3 * 3_600_000
@@ -138,4 +169,20 @@ export async function calculateScoresForSession(
     count++
   }
   return count
+}
+
+export async function recalculateAllScores(year: number): Promise<number> {
+  const events = await getEvents()
+  const yearEvents = events.filter(e => e.id.endsWith(`_${year}`))
+  const now = new Date()
+  let total = 0
+  for (const event of yearEvents) {
+    for (const sessionType of (Object.keys(TIPPABLE_TO_EVENT_SESSION) as TippableSessionType[])) {
+      if ((sessionType === 'sprint_race' || sessionType === 'sprint_qualifying') && !event.isSprintWeekend) continue
+      const sessionInfo = event.sessions[TIPPABLE_TO_EVENT_SESSION[sessionType]]
+      if (!sessionInfo || sessionInfo.endTime.toDate() > now) continue
+      total += await calculateScoresForSession(event.id, sessionType, year)
+    }
+  }
+  return total
 }

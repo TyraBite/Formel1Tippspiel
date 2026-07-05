@@ -53,7 +53,15 @@ export function LeaderboardPage() {
 
   const now = new Date()
   const pastEvents = events
-    .filter(e => e.sessions.qualifying.startTime.toDate() <= now)
+    .filter(e => {
+      const candidates = [
+        e.sessions.qualifying,
+        e.sessions.race,
+        e.sessions.sprint_race,
+        e.sessions.fp3_or_sprint_q,
+      ]
+      return candidates.some(s => s && s.startTime.toDate() <= now)
+    })
     .sort((a, b) => b.round - a.round)
 
   const eventIds = [...new Set(scores.map(s => s.eventId))]
