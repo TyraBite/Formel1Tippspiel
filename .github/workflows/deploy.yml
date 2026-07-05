@@ -64,12 +64,6 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
 
-      - name: Seed production database
-        continue-on-error: true
-        run: npm run seed:prod
-        env:
-          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
-
   deploy:
     needs: build
     runs-on: ubuntu-latest
