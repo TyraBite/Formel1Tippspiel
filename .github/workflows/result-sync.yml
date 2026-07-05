@@ -1,8 +1,6 @@
 name: Sync Race Results
 
 on:
-  schedule:
-    - cron: '0 * * * 1,5,6,0'  # every hour on Mon, Fri, Sat, Sun (UTC)
   workflow_dispatch:
 
 jobs:

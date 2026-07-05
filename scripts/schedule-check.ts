@@ -9,12 +9,14 @@ const db = getFirestore()
 // Session keys in Firestore event.sessions that hold tippable session times
 const TIPPABLE_SESSION_KEYS = ['qualifying', 'race', 'sprint_race', 'fp3_or_sprint_q']
 
-// Trigger sync if a tippable session ended in this window (90 min after end → results stabilise)
-const SYNC_WINDOW_MINUTES = 90
+// Poll window: start 30 min before expected session end, keep going 90 min after
+const PRE_SESSION_BUFFER_MINUTES = 30
+const POST_SESSION_WINDOW_MINUTES = 90
 
 async function check() {
   const now = new Date()
-  const windowStart = new Date(now.getTime() - SYNC_WINDOW_MINUTES * 60_000)
+  const windowStart = new Date(now.getTime() - POST_SESSION_WINDOW_MINUTES * 60_000)
+  const windowEnd = new Date(now.getTime() + PRE_SESSION_BUFFER_MINUTES * 60_000)
 
   const snap = await db.collection('events').get()
   let shouldSync = false
@@ -27,9 +29,12 @@ async function check() {
       const session = sessions[key]
       const endTime: Date | undefined = session?.endTime?.toDate?.()
       if (!endTime) continue
-      if (endTime >= windowStart && endTime <= now) {
+      if (endTime >= windowStart && endTime <= windowEnd) {
         shouldSync = true
-        matchedSession = `${docSnap.id}/${key} ended ${Math.round((now.getTime() - endTime.getTime()) / 60_000)}min ago`
+        const diffMin = Math.round((now.getTime() - endTime.getTime()) / 60_000)
+        matchedSession = diffMin >= 0
+          ? `${docSnap.id}/${key} ended ${diffMin}min ago`
+          : `${docSnap.id}/${key} ends in ${-diffMin}min`
         break outer
       }
     }
@@ -38,7 +43,7 @@ async function check() {
   if (shouldSync) {
     console.log(`[schedule] sync triggered: ${matchedSession}`)
   } else {
-    console.log(`[schedule] no session ended in last ${SYNC_WINDOW_MINUTES}min — skip`)
+    console.log(`[schedule] no session in active window — skip`)
   }
 
   const output = `should_sync=${shouldSync}`
