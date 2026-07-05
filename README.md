@@ -4,17 +4,32 @@ Zweispieler-Tippspiel für die Formel-1-Saison 2026. Beide Spieler tippen jeweil
 
 **Punktewertung:** 1 Punkt für Fahrer korrekt in Top 10 · 3 Punkte für exakte Position · Max. 30 Punkte pro Session
 
+**Seiten:**
+- **Tipps** — Event-Liste mit nächstem Event + Countdown; Tipp-Formular pro Session
+- **Live** — Echtzeit-Positionen, Wetter, Race Control, Reifentypen, Gap-to-leader, Pit-Stopps, Tipps beider Spieler
+- **Rangliste** — Gesamtpunkte, Session-Breakdowns mit Tipps beider Spieler
+- **Auflösung** — Tipp-Vergleich nach der Session (HistoryPage)
+- **Statistiken** — Trefferquoten, Saison-Trend, H2H, Fahrer-Prognose-Profil
+- **Admin** — Saison-Sync + Ergebnis-Import (nur per URL oder Klick auf Username im Burger-Menü)
+
 ---
 
 ## Design
 
-F1-inspiriertes Dark-Theme. Designprinzipien:
+F1-inspiriertes Dark-Theme. Zwei Themes: **Carbon** (Standard, tiefschwarz mit Weave-Textur auf Nav/Drawer) und **Night Race** (dunkelgrau). Toggle im Burger-Menü.
+
+Designprinzipien:
 - Roter 3px-Balken ganz oben (F1-Signature)
 - Zweireihige Rennstreifen im Logo
 - Aktive Nav-Links in F1-Rot, Nav-Text uppercase
 - Cards leicht kantig (`rounded` statt `rounded-lg`)
 - Buttons uppercase mit `tracking-wider` — wie Anzeigetafeln
 - Badges eckig (`rounded-sm`), uppercase
+- TipForm: linker Team-Farb-Akzent pro Zeile (border-left + subtiler Hintergrund-Tint)
+- TipForm-Header: grüner Punkt wenn alle 10 Positionen ausgefüllt
+- EventPage: roter Rahmen wenn Tipp-Deadline < 1h
+
+**Navigation:** Mobile-first Burger-Menü mit Slide-Drawer (Body-Scroll-Lock). Desktop-Nav bleibt sichtbar. Drawer enthält Nav-Links, Theme-Toggle, Username und Abmelden. Klick auf den Username öffnet `/admin`.
 
 ---
 
@@ -86,11 +101,11 @@ Da der Login mit Username statt E-Mail funktioniert, werden Nutzer direkt in der
 
 ## Admin-Seite
 
-Die Seite `/Formel1Tippspiel/admin` ist nur per direkter URL erreichbar (kein Link in der Nav).
+Die Seite `/Formel1Tippspiel/admin` ist erreichbar per direkter URL oder Klick auf den eigenen Username im Burger-Drawer.
 
 **Saison synchronisieren** — holt Events und Fahrer vom aktuellen und nächsten Jahr von der OpenF1 API.
 
-**Ergebnisse importieren & Punkte berechnen** — holt Positionsdaten von OpenF1 für alle abgeschlossenen Sessions und berechnet die Scores beider Spieler.
+**Ergebnisse importieren & Punkte berechnen** — holt Positionsdaten von OpenF1 für alle abgeschlossenen Sessions und berechnet die Scores beider Spieler. Primärquelle: OpenF1 `/session_result`; Fallback auf Firestore-Cache wenn OpenF1 keine Daten liefert.
 
 ---
 
